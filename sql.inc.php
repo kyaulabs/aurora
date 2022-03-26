@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.1 2021/11/09 13:41:59 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.0.3 2022/03/26 11:40:27 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -11,7 +11,7 @@
  * ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀
  *
  * Aurora HTML5 Template Engine
- * Copyright (C) 2021 KYAU Labs (https://kyaulabs.com)
+ * Copyright (C) 2022 KYAU Labs (https://kyaulabs.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -58,11 +58,21 @@ namespace KYAULabs
          * @param string $db The database to connect to. This is required.
          * @param array $options PDO connection options array. This is optional and will override defaults.
          */
-        public function __construct(string $user = null, string $passwd = null, string $db = null, $options = [])
+        public function __construct(string $db = null, $options = [])
         {
-            if (count(array_filter(array($user, $passwd, $db))) == 1) {
+            $user = "";
+            $passwd = "";
+            include_once(__DIR__ . '/settings.inc.php');
+            if ($db == null) {
                 throw new \Exception('Required parameter is null.');
                 return 0;
+            }
+            if (! defined('SQL_USER')) {
+                throw new \Exception('No settings.inc.php exists.');
+                return 0;
+            } else {
+                $user = SQL_USER;
+                $passwd = SQL_PASSWD;
             }
             $defaults = [
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
@@ -71,8 +81,7 @@ namespace KYAULabs
             ];
             $options = array_replace($defaults, $options);
             $this->db = $db;
-            $dsn = "mysql:host=" . $this::SQL_HOST . ";dbname=" . $this->db . \
-                   ";port" . $this::SQL_PORT . ";charset=utf8mb4";
+            $dsn = "mysql:host=" . $this::SQL_HOST . ";dbname=" . $this->db . ";port" . $this::SQL_PORT . ";charset=utf8mb4";
 
             try {
                 $this->pdo = new \PDO($dsn, $user, $passwd, $options);
