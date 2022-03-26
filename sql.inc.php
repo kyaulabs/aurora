@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.1 2021/11/09 13:41:59 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.0.3 2022/03/26 11:40:27 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -11,7 +11,7 @@
  * ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀
  *
  * Aurora HTML5 Template Engine
- * Copyright (C) 2021 KYAU Labs (https://kyaulabs.com)
+ * Copyright (C) 2022 KYAU Labs (https://kyaulabs.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
