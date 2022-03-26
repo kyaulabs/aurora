@@ -58,11 +58,21 @@ namespace KYAULabs
          * @param string $db The database to connect to. This is required.
          * @param array $options PDO connection options array. This is optional and will override defaults.
          */
-        public function __construct(string $user = null, string $passwd = null, string $db = null, $options = [])
+        public function __construct(string $db = null, $options = [])
         {
-            if (count(array_filter(array($user, $passwd, $db))) == 1) {
+            $user = "";
+            $passwd = "";
+            include_once('settings.inc.php');
+            if ($db == null) {
                 throw new \Exception('Required parameter is null.');
                 return 0;
+            }
+            if (defined(SQL_USER)) {
+                throw new \Exception('No settings.inc.php exists.');
+                return 0;
+            } else {
+                $user = SQL_USER;
+                $passwd = SQL_PASSWD;
             }
             $defaults = [
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
@@ -71,8 +81,7 @@ namespace KYAULabs
             ];
             $options = array_replace($defaults, $options);
             $this->db = $db;
-            $dsn = "mysql:host=" . $this::SQL_HOST . ";dbname=" . $this->db . \
-                   ";port" . $this::SQL_PORT . ";charset=utf8mb4";
+            $dsn = "mysql:host=" . $this::SQL_HOST . ";dbname=" . $this->db . ";port" . $this::SQL_PORT . ";charset=utf8mb4";
 
             try {
                 $this->pdo = new \PDO($dsn, $user, $passwd, $options);
