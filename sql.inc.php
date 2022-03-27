@@ -62,12 +62,12 @@ namespace KYAULabs
         {
             $user = "";
             $passwd = "";
-            include_once('settings.inc.php');
+            include_once(__DIR__ . '/settings.inc.php');
             if ($db == null) {
                 throw new \Exception('Required parameter is null.');
                 return 0;
             }
-            if (defined(SQL_USER)) {
+            if (! defined('SQL_USER')) {
                 throw new \Exception('No settings.inc.php exists.');
                 return 0;
             } else {
