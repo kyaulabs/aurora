@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: settings.example.php,v 1.0.1 2022/03/26 17:45:04 kyau Exp $
+ * $KYAULabs: settings.example.php,v 1.0.2 2024/07/09 04:46:28 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -11,7 +11,7 @@
  * ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀
  *
  * Aurora HTML5 Template Engine
- * Copyright (C) 2022 KYAU Labs (https://kyaulabs.com)
+ * Copyright (C) 2024 KYAU Labs (https://kyaulabs.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
