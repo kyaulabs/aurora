@@ -367,7 +367,7 @@ class Aurora
             $fd = @fopen($project_file, 'r');
             if ($fd) {
                 while (($buffer = fgets($fd, 4096)) !== false) {
-                    if ($line === 4) {
+                    if (substr($buffer, 0, 13) == ' * $KYAULabs:') {
                         $str = explode(' ', $buffer);
                         $hash = substr(md5($str[5] . $str[6]), 0, 8);
                         fclose($fd);
