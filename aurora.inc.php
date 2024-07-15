@@ -233,41 +233,24 @@ class Aurora
      *
      * @return string Return preload string for insertion into <head>.
      */
-    private function htmlPreload()
+    private function htmlScripts()
     {
         $str = "";
-        if (!empty($this->preload)) {
+        if (!empty($this->js)) {
             $str .= "\n";
-            if (count($this->api)) {
-                foreach ($this->api as $url) {
-                    // add dns prefetch
-                    $str .= sprintf("\t<link rel=\"dns-prefetch\" href=\"//%s\" />\n", $url);
-                    $str .= sprintf("\t<link rel=\"preconnect\" href=\"//%s\" crossorigin />\n", $url);
-                }
-                $str .= "\n";
-            }
-            foreach ($this->preload as $url => $type) {
-                if (in_array($type, array("script", "style"))) {
-                    $path = "";
-                    foreach ($this->css as $cpath => $curl) {
-                        if (stristr($curl, $url) !== false) {
-                            $path = $cpath;
-                        }
-                    }
-                    foreach ($this->js as $cpath => $curl) {
-                        if (stristr($curl, $url) !== false) {
-                            $path = $cpath;
-                        }
-                    }
+            foreach ($this->js as $path => $url) {
+                if ($path == "<external>") {
+                    $str .= sprintf("\t<script src=\"%s\" async defer></script>\n", $url);
+                } else {
                     if (!file_exists($path) or !file_exists($path . '.sha512')) {
-                        throw new \Exception("{$path}.sha384 does not exist.");
+                        throw new \Exception("{$path}.sha512 does not exist.");
+                        return 0;
                     }
                     $sha512 = trim(file_get_contents($path . '.sha512'));
                     if (!empty($sha512)) {
-                        $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", ("//" . $this->api[0] . trim($url)), strtolower(trim($type)), $sha512);
+                        $str .= sprintf("\t<script src=\"%s\" defer=\"defer\"\n", $url);
+                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
                     }
-                } else {
-                    $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\" crossorigin />\n", ("//" . $this->api[0] . trim($url)), strtolower(trim($type)));
                 }
             }
         }
