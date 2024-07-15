@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.3 2024/07/09 04:35:51 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.0.5 2024/07/15 15:40:25 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -95,11 +95,11 @@ class Aurora
         // throw an Exception if $template, $base or $url is null
         if (count(array_filter(array($template, $base, $url))) == 1) {
             throw new \Exception('Required parameter is null.');
-            return 0;
+            return;
         } else {
             if (!file_exists(self::AURORA_DIR . "/{$template}")) {
                 throw new \Exception('Aurora HTML5 template not found.');
-                return 0;
+                return;
             } else {
                 $this->aurora_template = $template;
             }
@@ -107,7 +107,7 @@ class Aurora
         // throw an Exception if base directory does not exist
         if (!is_dir($base)) {
             throw new \Exception("Invalid directory: {$base}");
-            return 0;
+            return;
         } else {
             $this->aurora_base = $base;
             $this->aurora_url = $url;
@@ -166,9 +166,9 @@ class Aurora
     /**
      * @param string $name Variable to look for.
      *
-     * @return bool|string Return false or the string value of the variable.
+     * @return string Return null or the string value of the variable.
      */
-    public function __get(string $name)
+    public function __get(string $name): ?string
     {
         if (in_array($name, array('aurora_base', 'aurora_url', 'api', 'preload', 'css', 'js', 'sessions', 'status', 'html'))) {
             if (!empty($this->$name)) {
@@ -180,13 +180,13 @@ class Aurora
             }
         }
         echo "Error: unable to find variable '{$name}'\n";
-        return 0;
+        return null;
     }
 
     /**
      * @param string $name Variable to set.
      */
-    public function __set(string $name, $value)
+    public function __set(string $name, $value): void
     {
         if (in_array($name, array('api', 'preload', 'css', 'js', 'sessions'))) {
             if (!is_array($name) || !count($this->$name)) {
@@ -194,22 +194,22 @@ class Aurora
             } else {
                 $this->$name = array_merge($this->$name, $value);
             }
-            return 1;
+            return;
         } else {
             $this->vars[$name] = $value;
-            return 1;
+            return;
         }
         echo "Error: unable to set '{$name}' variable to '{$value}'.\n";
-        return 0;
+        return;
     }
 
     /**
      * Process stylesheets and return a string to insert into <head>.
      *
      * @return string|bool Return stylesheet string for insertion into <head>
-     *                     or throw exception and return false.
+     *                     or throw exception and return null.
      */
-    private function htmlStyles()
+    private function htmlStyles(): ?string
     {
         $str = "";
         if (!empty($this->css)) {
@@ -217,6 +217,7 @@ class Aurora
             foreach ($this->css as $path => $url) {
                 if (!file_exists($path) or !file_exists($path . '.sha512')) {
                     throw new \Exception("{$path}.sha384 does not exist.");
+                    return null;
                 }
                 $sha512 = trim(file_get_contents($path . '.sha512'));
                 if (!empty($sha512)) {
@@ -231,9 +232,59 @@ class Aurora
     /**
      * Process all preloaded files and create string to insert into <head>.
      *
-     * @return string Return preload string for insertion into <head>.
+     * @return string Return preload string for insertion into <head> or throw
+     *                exception and return null.
      */
-    private function htmlScripts()
+    private function htmlPreload(): ?string
+    {
+        $str = "";
+        if (!empty($this->preload)) {
+            $str .= "\n";
+            if (count($this->api)) {
+                foreach ($this->api as $url) {
+                    // add dns prefetch
+                    $str .= sprintf("\t<link rel=\"dns-prefetch\" href=\"//%s\" />\n", $url);
+                    $str .= sprintf("\t<link rel=\"preconnect\" href=\"//%s\" crossorigin />\n", $url);
+                }
+                $str .= "\n";
+            }
+            foreach ($this->preload as $url => $type) {
+                if (in_array($type, array("script", "style"))) {
+                    $path = "";
+                    foreach ($this->css as $cpath => $curl) {
+                        if (stristr($curl, $url) !== false) {
+                            $path = $cpath;
+                        }
+                    }
+                    foreach ($this->js as $cpath => $curl) {
+                        if (stristr($curl, $url) !== false) {
+                            $path = $cpath;
+                        }
+                    }
+                    if (!file_exists($path) or !file_exists($path . '.sha512')) {
+                        throw new \Exception("{$path}.sha384 does not exist.");
+                        return null;
+                    }
+                    $sha512 = trim(file_get_contents($path . '.sha512'));
+                    if (!empty($sha512)) {
+                        $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", ("//" . $this->api[0] . trim($url)), strtolower(trim($type)), $sha512);
+                    }
+                } else {
+                    $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\" crossorigin />\n", ("//" . $this->api[0] . trim($url)), strtolower(trim($type)));
+                }
+            }
+        }
+        return $str;
+    }
+
+    /**
+     * Process all javascript files and create string to place at the end of
+     * <body>.
+     *
+     * @return string Return script string for insertion into <body> or
+     *                throw exception and return null.
+     */
+    private function htmlScripts(): ?string
     {
         $str = "";
         if (!empty($this->js)) {
@@ -244,7 +295,7 @@ class Aurora
                 } else {
                     if (!file_exists($path) or !file_exists($path . '.sha512')) {
                         throw new \Exception("{$path}.sha512 does not exist.");
-                        return 0;
+                        return null;
                     }
                     $sha512 = trim(file_get_contents($path . '.sha512'));
                     if (!empty($sha512)) {
@@ -258,40 +309,13 @@ class Aurora
     }
 
     /**
-     * Process all javascript files and create string to place at the end of
-     * <body>.
-     *
-     * @return string Return script string for insertion into <body> or
-     *                throw exception and return false.
-     */
-    private function htmlScripts()
-    {
-        $str = "";
-        if (!empty($this->js)) {
-            $str .= "\n";
-            foreach ($this->js as $path => $url) {
-                if (!file_exists($path) or !file_exists($path . '.sha512')) {
-                    throw new \Exception("{$path}.sha512 does not exist.");
-                    return 0;
-                }
-                $sha512 = trim(file_get_contents($path . '.sha512'));
-                if (!empty($sha512)) {
-                    $str .= sprintf("\t<script src=\"%s\" defer=\"defer\"\n", $url);
-                    $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
-                }
-            }
-        }
-        return $str;
-    }
-
-    /**
      * Replace variables and/or functions with cooresponding data.
      *
      * @param string $line Line of text to be analyzed and regexp strings applied.
      *
      * @return string The template line complete with replacements.
      */
-    private function replace(string $line)
+    private function replace(string $line): string
     {
         foreach ($this->vars as $key => $value) {
             $reg = '/{{[\s|\S](' . $key . ')[\s|\S]}}/';
@@ -320,7 +344,7 @@ class Aurora
      *
      * @return bool True on success and false upon any failure.
      */
-    private function render()
+    private function render(): bool
     {
         $fd = @fopen(self::AURORA_DIR . "/" . $this->aurora_template, 'r');
         if ($fd) {
@@ -347,7 +371,7 @@ class Aurora
      *
      * @return bool True on success and false upon any failure.
      */
-    private function phpSet($setting, $value)
+    private function phpSet($setting, $value): bool
     {
         if (ini_set($setting, $value) === false) {
             echo "Error: could not set {$setting} to {$value}, please ensure it's set on your system!\n";
@@ -361,9 +385,9 @@ class Aurora
      *
      * @param string $project_file The main project file.
      *
-     * @return string The version string or error message.
+     * @return string The version string, error message, or null.
      */
-    private function projectVersion(string $project_file)
+    private function projectVersion(string $project_file): ?string
     {
         if (file_exists($project_file)) {
             $line = 1;
@@ -389,7 +413,7 @@ class Aurora
         } else {
             printf("Error: file '%s' does not exist\n", $project_file);
         }
-        return 0;
+        return null;
     }
 
     /**
@@ -401,7 +425,7 @@ class Aurora
      *
      * @return int Runtime in milliseconds.
      */
-    private function rutime(array $ru, array $rus, string $index)
+    private function rutime(array $ru, array $rus, string $index): int
     {
         return ($ru["ru_$index.tv_sec"] * 1000 + intval($ru["ru_$index.tv_usec"] / 1000))
             - ($rus["ru_$index.tv_sec"] * 1000 + intval($rus["ru_$index.tv_usec"] / 1000));
@@ -415,10 +439,9 @@ class Aurora
      *
      * @return string Page render time.
      */
-    private function renderTime(array $ru, array $rus)
+    private function renderTime(array $ru, array $rus): string
     {
-        $ret = sprintf("compute:%dms  syscall:%dms", self::rutime($ru, $rus, "utime"), self::rutime($ru, $rus, "stime"));
-        return $ret;
+        return sprintf("compute:%dms  syscall:%dms", self::rutime($ru, $rus, "utime"), self::rutime($ru, $rus, "stime"));
     }
 
     /**
@@ -430,12 +453,11 @@ class Aurora
      *
      * @return string Page footer comment.
      */
-    public function comment(array $rus, string $script, bool $vim = false)
+    public function comment(array $rus, string $script, bool $vim = false): string
     {
         $time = sprintf("%s", self::renderTime($rus, getrusage()));
         $version = self::projectVersion($script);
-        $ret = sprintf("\n<!--\n\t%s  %s\n%s-->", $version, $time, ($vim ? "\tvim: ft=html sts=4 sw=4 ts=4 noet:\n" : ''));
-        return $ret;
+        return sprintf("\n<!--\n\t%s  %s\n%s-->", $version, $time, ($vim ? "\tvim: ft=html sts=4 sw=4 ts=4 noet:\n" : ''));
     }
 
     /**
@@ -444,7 +466,7 @@ class Aurora
      *
      * @return bool True on success and false upon any failure.
      */
-    public function htmlHeader()
+    public function htmlHeader(): bool
     {
         if (!isset($this->aurora_template) or empty($this->vars)) {
             echo "Error: template file and/or variables not set.\n";
@@ -463,7 +485,7 @@ class Aurora
      *
      * @return bool True on success and false upon any failure.
      */
-    public function htmlFooter()
+    public function htmlFooter(): bool
     {
         if (!empty($this->js)) {
             printf("%s", $this->htmlScripts());
@@ -477,7 +499,7 @@ class Aurora
      *
      * @return bool True on success and false upon any failure.
      */
-    public function enableSessions(string $session_name = "")
+    public function enableSessions(string $session_name = ""): bool
     {
         if ($session_name != "") {
             $this->session_name = $session_name;
@@ -491,7 +513,7 @@ class Aurora
      *
      * @return bool True on success and false upon any failure.
      */
-    public function sessionRegenerateID()
+    public function sessionRegenerateID(): bool
     {
         // ensure sessions are active
         if (session_status() != PHP_SESSION_ACTIVE) {
@@ -514,7 +536,7 @@ class Aurora
     /**
      *
      */
-    public function testVariables()
+    public function testVariables(): string
     {
         $str = "\nVariables Replaced:<br/>\n";
         foreach ($this->vars_success as $value) {
