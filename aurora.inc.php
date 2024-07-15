@@ -49,17 +49,21 @@ class Aurora
      * @var string $aurora_base Project base directory.
      * @var string $aurora_template Aurora HTML5 Template to load.
      * @var string $aurora_url Project base url.
+     * @var string $session_name Name of the session which is used as cookie name.
      */
     private $aurora_base = "";
     private $aurora_template = "";
     private $aurora_url = "";
+    private $session_name = "KYAULabs";
 
     /**
      * @var bool $status When true development mode is enabled, production mode
      *                   when set to false.
+     * @var bool $sessions When true sessions are enabled before headers are sent.
      * @var bool $html When true send an html header before content.
      */
     private $status = true;
+    private $sessions = false;
     private $html = false;
 
     /**
@@ -89,7 +93,7 @@ class Aurora
     public function __construct(string $template = null, string $base = null, string $url = null, bool $status = false, bool $html = false)
     {
         // throw an Exception if $template, $base or $url is null
-        if (count(array_filter(array($template,$base,$url))) == 1) {
+        if (count(array_filter(array($template, $base, $url))) == 1) {
             throw new \Exception('Required parameter is null.');
             return 0;
         } else {
@@ -109,21 +113,37 @@ class Aurora
             $this->aurora_url = $url;
         }
 
-        /* Enable secure sessions */
-        $this->phpSet('session.use_strict_mode', '1');
-        $this->phpSet('session.use_only_cookies', '1');
-        $this->phpSet('session.use_trans_sid', '0');
+        // Enable secure sessions
+        if ($this->sessions) {
+            $this->phpSet('session.use_strict_mode', '1');
+            session_start([
+                'cookie_domain' => $_SERVER['HTTP_HOST'],
+                'cookie_httponly' => 1,
+                'cookie_lifetime' => 86400 * 30,
+                'cookie_samesite' => 'Strict',
+                'cookie_secure' => 1,
+                'session_name' => $this->session_name,
+            ]);
+            // Do not allow expired sessions
+            if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
+                // last request was more than 30 minutes ago
+                session_unset();
+                session_destroy();
+                session_start();
+            }
+            $this->sessionRegenerateID();
+        }
 
-        /* Enable unicode and set default timezone to UTC */
+        // Enable unicode and set default timezone to UTC.
         mb_internal_encoding('UTF-8');
         $this->phpSet('default_charset', 'UTF-8');
         date_default_timezone_set('UTC');
 
-        /* Set the status and html output variables accordingly */
-        ( $status ) ? '' : $this->status = $status;
-        ( $html ) ? $this->html = $html : '';
+        // Set the status and html output variables accordingly.
+        ($status) ? '' : $this->status = $status;
+        ($html) ? $this->html = $html : '';
 
-        /* Set logging settings accordingly */
+        // Set logging settings accordingly.
         if ($this->status) {
             $this->phpSet('display_errors', '1');
             $this->phpSet('display_startup_errors', '1');
@@ -136,7 +156,7 @@ class Aurora
             $this->phpSet('html_errors', '0');
         }
 
-        /* HTML Mode */
+        // HTML Mode
         if ($this->html) {
             mb_http_output('UTF-8');
             header('Content-Type: text/html; charset=UTF-8');
@@ -150,7 +170,7 @@ class Aurora
      */
     public function __get(string $name)
     {
-        if (in_array($name, array('aurora_base', 'aurora_url', 'api', 'preload', 'css', 'js', 'status', 'html'))) {
+        if (in_array($name, array('aurora_base', 'aurora_url', 'api', 'preload', 'css', 'js', 'sessions', 'status', 'html'))) {
             if (!empty($this->$name)) {
                 return $this->$name;
             }
@@ -168,8 +188,8 @@ class Aurora
      */
     public function __set(string $name, $value)
     {
-        if (in_array($name, array('api', 'preload', 'css', 'js'))) {
-            if (!count($this->$name)) {
+        if (in_array($name, array('api', 'preload', 'css', 'js', 'sessions'))) {
+            if (!is_array($name) || !count($this->$name)) {
                 $this->$name = $value;
             } else {
                 $this->$name = array_merge($this->$name, $value);
@@ -466,6 +486,45 @@ class Aurora
             printf("%s", $this->htmlScripts());
         }
         printf("\n</body>\n</html>");
+        return 1;
+    }
+
+    /**
+     * Enable sessions, optionally setting a session name for cookies.
+     *
+     * @return bool True on success and false upon any failure.
+     */
+    public function enableSessions(string $session_name = "")
+    {
+        if ($session_name != "") {
+            $this->session_name = $session_name;
+        }
+        $this->sessions = true;
+        return 1;
+    }
+
+    /**
+     * Create a new collision free session id.
+     *
+     * @return bool True on success and false upon any failure.
+     */
+    public function sessionRegenerateID()
+    {
+        // ensure sessions are active
+        if (session_status() != PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        $newid = session_create_id(strtolower($this->session_name) . '-');
+        $_SESSION['last_activity'] = time();
+        session_commit();
+
+        // Make sure to accept user defined session id.
+        // NOTE: You must enable use_strict_mode for normal operations.
+        $this->phpSet('session.use_strict_mode', '0');
+        session_id($newid);
+        session_start();
+
         return 1;
     }
 
