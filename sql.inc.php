@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: sql.inc.php,v 1.0.4 2024/07/09 04:45:30 -0700 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.0.5 2024/07/15 17:03:07 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -28,6 +28,11 @@
  */
 
 namespace KYAULabs;
+
+use \Exception as Exception;
+use \PDO as PDO;
+use \PDOException as PDOException;
+use \PDOStatement as PDOStatement;
 
 /**
  * SQL Handler
@@ -60,24 +65,29 @@ class SQLHandler
         */
     public function __construct(string $db = null, $options = [])
     {
+        // Enable unicode and set default timezone to UTC.
+        mb_internal_encoding('UTF-8');
+        ini_set('default_charset', 'UTF-8');
+        date_default_timezone_set('UTC');
+
         $user = "";
         $passwd = "";
         include_once(__DIR__ . '/settings.inc.php');
         if ($db == null) {
-            throw new \Exception('Required parameter is null.');
-            return 0;
+            throw new Exception('Required parameter is null.');
+            return;
         }
         if (! defined('SQL_USER')) {
-            throw new \Exception('No settings.inc.php exists.');
-            return 0;
+            throw new Exception('No settings.inc.php exists.');
+            return;
         } else {
             $user = SQL_USER;
             $passwd = SQL_PASSWD;
         }
         $defaults = [
-            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-            \PDO::ATTR_EMULATE_PREPARES => false,
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         ];
         $options = array_replace($defaults, $options);
         $this->db = $db;
@@ -85,8 +95,8 @@ class SQLHandler
 
         try {
             $this->pdo = new \PDO($dsn, $user, $passwd, $options);
-        } catch (\PDOException $e) {
-            $this->process_exception($e);
+        } catch (PDOException $e) {
+            $this->procException($e);
         }
     }
 
@@ -95,7 +105,7 @@ class SQLHandler
         * @param string $name The name of the database to connect to.
         * @return boolean Whether or not the database change succeeded.
         */
-    public function setDatabase($name)
+    public function setDatabase($name): bool
     {
         $this->db = $name;
         return ($this->query("USE ?", array($name))) ? true : false;
@@ -107,7 +117,7 @@ class SQLHandler
         * @param array $args The parameters array, the one attached to execute()
         * @return PDOStatement|boolean The PDOStatement object retreived from the database or false if something failed.
         */
-    public function query($sql, array $args = array())
+    public function query($sql, array $args = array()): PDOStatement
     {
         try {
             if ($this->pdo !== null) {
@@ -128,7 +138,7 @@ class SQLHandler
         * @param PDOException $e The exception to process
         * @throws PDOException If err is set to sql_handler::THROW_EXCEPTION
         */
-    private function procException(PDOException &$e)
+    private function procException(PDOException &$e): void
     {
         switch ($this->err) {
             case self::INTERNAL_HANDLING:
@@ -146,7 +156,7 @@ class SQLHandler
         * Handle a PDOException by showing the stacktrace properly and dieing.
         * @param PDOException $e The exception to handle
         */
-    public static function handleException(PDOException &$e)
+    public static function handleException(PDOException &$e): void
     {
         $trace = $e->getTrace();
         $msg = "<span class=\"error\"><strong>An error has occurred: </strong><br/>\n<pre>";
