@@ -1,21 +1,39 @@
-![ANSI Logo](https://raw.githubusercontent.com/kyaulabs/aurora/master/aurora.ans.png "ANSI Logo")
+# Aurora
 
-[![](https://img.shields.io/badge/coded_in-vim-green.svg?logo=vim&logoColor=brightgreen&colorB=brightgreen&longCache=true&style=flat)](https://vim.org) &nbsp; [![](https://img.shields.io/badge/license-AGPL_v3-blue.svg?style=flat)](https://raw.githubusercontent.com/kyaulabs/aurora/master/LICENSE) &nbsp; [![](https://img.shields.io/badge/php-8.0+-C85000.svg?style=flat)](https://www.php.net/)
+<img src=".github/media/aurora.ans.png" alt="Repository Logo" />
 
-### About
+[https://kyaulabs.com/](https://kyaulabs.com/)
 
-Aurora is built for rapid deployment of Ajax loaded content pages. It is an
-attempt at using the most up-to-date HTML5 spec / web standards in use today.
+[![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-2.1-4baaaa.svg?logo=open-source-initiative&logoColor=4baaaa)](CODE_OF_CONDUCT.md) &nbsp; [![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-fe5196?style=flat&logo=conventionalcommits)](https://www.conventionalcommits.org/en/v1.0.0/) &nbsp; [![GitHub](https://img.shields.io/github/license/kyaulabs/aurora?logo=creativecommons)](LICENSE) &nbsp; [![Gitleaks](https://img.shields.io/badge/protected%20by-gitleaks-blue?logo=git&logoColor=seagreen&color=seagreen)](https://github.com/zricethezav/gitleaks)  
+[![Semantic Versioning](https://img.shields.io/github/v/release/kyaulabs/aurora?include_prereleases&logo=semver&sort=semver)](https://semver.org) &nbsp; [![Discord](https://img.shields.io/discord/88713030895943680?logo=discord&color=blue&logoColor=white)](https://discord.gg/DSvUNYm)
+
+* [About](#about)
+  * [What's Included](#whats-included)
+* [Usage](#usage)
+
+## About
+
+Aurora is built for rapid deployment of sites built with AJAX content loading.
+It also attempts to use the most up-to-date HTML specifications / web standards
+in use today.
 
 This has been created with personal use in mind and is highly tailored to the
 types of sites I create and run. That said, this could be easily adapted to
 anyones needs with a bit of work.
 
-### Usage
+### What's Included
 
-To use Aurora, one needs to either use the default HTML template or create
-your own. Once finished, move Aurora into a folder above the web root then
-create an `index.php` similar to the following:
+* [x] Template-based HTML header
+* [x] Resource preloading
+* [x] Subresource Integrity (SRI) enabled
+* [x] Performance Statistics
+* [x] SQL Handler
+
+## Usage
+
+To use Aurora, one needs to either use the default HTML header template or
+create your own. Once finished, move Aurora into a folder above the web root
+then create an `index.php` similar to the following:
 
 ```php
 $rus = getrusage();
@@ -34,7 +52,7 @@ $site->css = [
     '../api/css/site.min.css' => '//api.domain.com/css/site.min.css',
 ];
 $site->js = [
-    '../api/javascript/jquery-3.6.0.min.js' => '//api.domain.com/javascript/jquery-3.6.0.min.js',
+    '../api/javascript/jquery-3.7.1.min.js' => '//api.domain.com/javascript/jquery-3.7.1.min.js',
     '../api/javascript/site.min.js' => '//api.domain.com/javascript/site.min.js',
 ];
 $site->htmlHeader();

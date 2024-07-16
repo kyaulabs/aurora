@@ -1,1 +1,10 @@
+# Aurora Settings
 settings.inc.php
+
+# Images
+*.ans
+*.psd
+
+# Visual Studio cache directory
+*/.vs/
+.vs/

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: settings.example.php,v 1.0.2 2024/07/09 04:46:28 -0700 kyau Exp $
+ * $KYAULabs: settings.example.php,v 1.0.3 2024/07/15 17:57:31 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -27,11 +27,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Replace with your SQL username and password
+/*
+ *
+ * **WARNING!**
+ *
+ * 1. This file must be named `settings.inc.php` in order to function
+ * 2. Update `username` and `password` with the SQL username/password
+ *
+ */
+
 define("SQL_USER", "username");
 define("SQL_PASSWD", "password");
-
-//echo "SQL Settings loaded.\n";
 
 
 /**
