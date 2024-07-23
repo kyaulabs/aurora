@@ -36,23 +36,25 @@ create your own. Once finished, move Aurora into a folder above the web root
 then create an `index.php` similar to the following:
 
 ```php
-$rus = getrusage();
-require_once("../../aurora/aurora.inc.php");
+# $KYAULabs: index.php,v 1.0.0 2024/07/22 22:51:26 -0700 kyau Exp $
 
-$site = new KYAULabs\Aurora("index.html", "/nginx/https/domain_com/www", "www.domain.com", true, true);
+$rus = getrusage();
+require_once(__DIR__ . "/../../aurora/aurora.inc.php");
+
+$site = new KYAULabs\Aurora("index.html", "/cdn", true, true);
 $site->title = "Website Title";
 $site->description = "Full website description for search engines.";
-$site->api = ["api.domain.com"];
+$site->dns = ["cdn.domain.com"];
 $site->preload = [
     '/css/site.min.css' => 'style',
-    '/javascript/jquery-3.6.0.min.js' => 'script',
+    '/javascript/jquery.min.js' => 'script',
     '/javascript/site.min.js' => 'script',
 ];
 $site->css = [
     '../api/css/site.min.css' => '//api.domain.com/css/site.min.css',
 ];
 $site->js = [
-    '../api/javascript/jquery-3.7.1.min.js' => '//api.domain.com/javascript/jquery-3.7.1.min.js',
+    '../api/javascript/jquery.min.js' => '//api.domain.com/javascript/jquery.min.js',
     '../api/javascript/site.min.js' => '//api.domain.com/javascript/site.min.js',
 ];
 $site->htmlHeader();
