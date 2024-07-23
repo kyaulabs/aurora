@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: sql.inc.php,v 1.0.5 2024/07/15 17:03:07 -0700 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.0.6 2024/07/22 23:03:33 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -72,7 +72,7 @@ class SQLHandler
 
         $user = "";
         $passwd = "";
-        include_once(__DIR__ . '/settings.inc.php');
+        if (file_exists(__DIR__ . 'settings.inc.php')) include_once(__DIR__ . '/settings.inc.php');
         if ($db == null) {
             throw new Exception('Required parameter is null.');
             return;
@@ -172,7 +172,11 @@ class SQLHandler
             $msg .= " <strong>in</strong> " . str_replace($_SERVER['DOCUMENT_ROOT'], "", $path);
         }
         $msg .= "</pre></span>";
-        die($msg);
+        if (intval(ini_get('display_errors')) === 1) {
+            die($msg);
+        } else {
+            die();
+        }
     }
 }
 
