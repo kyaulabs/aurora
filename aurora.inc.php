@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.5 2024/07/15 15:40:25 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.0.6 2024/07/22 22:04:28 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -30,87 +30,83 @@
 namespace KYAULabs;
 
 /**
- * Aurora HTML5 Template Engine
+ * Class Aurora
  *
- * Aurora is built for rapid deployment of Ajax loaded content pages. It
- * is an attempt at using the most up-to-date HTML5 spec / web standards in
- * use today.
+ * This class provides functionality for managing Aurora templates and CDN directories,
+ * handling sessions, and rendering HTML content with CSS and JavaScript inclusion.
  */
 class Aurora
 {
-    /**
-     * @var string AURORA_ROOT Aurora's base directory on the filesystem.
-     * @var string AURORA_DIR The location of the Aurora template directory.
-     */
-    private const AURORA_ROOT = __DIR__;
+    /** @var string AURORA_DIR The Aurora template directory */
     private const AURORA_DIR = __DIR__ . "/html";
 
-    /**
-     * @var string $aurora_base Project base directory.
-     * @var string $aurora_template Aurora HTML5 Template to load.
-     * @var string $aurora_url Project base url.
-     * @var string $session_name Name of the session which is used as cookie name.
-     */
-    private $aurora_base = "";
+    /** @var string $aurora_cdn The CDN directory path */
+    private $aurora_cdn = "";
+    /** @var string $aurora_template The template file name */
     private $aurora_template = "";
-    private $aurora_url = "";
+    /** @var string $session_name The name of the session */
     private $session_name = "KYAULabs";
 
-    /**
-     * @var bool $status When true development mode is enabled, production mode
-     *                   when set to false.
-     * @var bool $sessions When true sessions are enabled before headers are sent.
-     * @var bool $html When true send an html header before content.
-     */
+    /** @var bool $status The status of the instance */
     private $status = true;
+    /** @var bool $sessions Flag indicating if sessions are enabled */
     private $sessions = false;
+    /** @var bool $html Flag indicating if HTML output is enabled */
     private $html = false;
 
-    /**
-     * @var string[] $api API URLs used by the project.
-     * @var string[] $css Stylesheet files for the current page, eg. path => url.
-     * @var string[] $js JavaScript files for the current page, eg. path => url.
-     * @var string[] $preload Files to preload with the page source, eg. url => type.
-     * @var string[] $vars Variables to replace inside the template.
-     * @var string[] $vars_success Replacements that went successfully.
-     */
-    private $api = [];
+    /** @var array $css CSS files to include */
     private $css = [];
+    /** @var array $dns DNS prefetch URLs */
+    private $dns = [];
+    /** @var array $js JavaScript files to include */
     private $js = [];
+    /** @var array $preload Preload resources */
     private $preload = [];
+    /** @var array $vars Variables for template replacement */
     private $vars = [];
+    /** @var array $vars_success Successfully replaced variables */
     private $vars_success = [];
 
     /**
-     * @param string $template Filename for the web template to execute.
-     * @param string $base Full path of the current website api.
-     * @param string $url Full url for the current website api.
-     * @param bool $status Run aurora in development/production (true/false) mode.
-     * @param bool $html Whether or not to output in HTML mode.
+     * Constructor for the Aurora class.
      *
-     * @return bool Return true if success.
+     * @param string|null $template The template file name.
+     * @param string|null $cdn The CDN directory path.
+     * @param bool $status The status flag.
+     * @param bool $html The HTML output flag.
+     * @throws AuroraException If required parameters are null or invalid directories.
      */
-    public function __construct(string $template = null, string $base = null, string $url = null, bool $status = false, bool $html = false)
+    public function __construct(?string $template = null, ?string $cdn = '/cdn', bool $status = false, bool $html = false)
     {
-        // throw an Exception if $template, $base or $url is null
-        if (count(array_filter(array($template, $base, $url))) == 1) {
-            throw new \Exception('Required parameter is null.');
+        // error handling
+        @set_exception_handler(['\KYAULabs\Aurora', 'exceptionHandler']);
+        ini_set('display_errors', '1');
+        ini_set('display_startup_errors', '1');
+        ini_set('error_reporting', '-1');
+        ini_set('html_errors', '1');
+
+        // check if any arguments are null
+        if (count(array_filter([$template, $cdn])) == 1) {
+            throw new AuroraException('Required parameter is null.', 'param', 1);
             return;
         } else {
             if (!file_exists(self::AURORA_DIR . "/{$template}")) {
-                throw new \Exception('Aurora HTML5 template not found.');
+                throw new AuroraException('Aurora HTML5 template not found.', 'html', 1);
                 return;
             } else {
                 $this->aurora_template = $template;
             }
         }
-        // throw an Exception if base directory does not exist
-        if (!is_dir($base)) {
-            throw new \Exception("Invalid directory: {$base}");
+        // check if CDN directory exist
+        $backtrace = debug_backtrace();
+        if (isset($backtrace[0]['file'])) {
+            $orig_dir = dirname($backtrace[0]['file']);
+        }
+        if (!is_dir($orig_dir . '/..' . $cdn)) {
+            throw new AuroraException("Invalid directory: " . $orig_dir . '/' . $cdn, 'cdn', 1);
             return;
         } else {
-            $this->aurora_base = $base;
-            $this->aurora_url = $url;
+            $this->aurora_cdn = $cdn;
         }
 
         // Enable secure sessions
@@ -164,13 +160,14 @@ class Aurora
     }
 
     /**
-     * @param string $name Variable to look for.
+     * Magic getter for accessing private properties.
      *
-     * @return string Return null or the string value of the variable.
+     * @param string $name The name of the property.
+     * @return string|null The value of the property or null if not found.
      */
     public function __get(string $name): ?string
     {
-        if (in_array($name, array('aurora_base', 'aurora_url', 'api', 'preload', 'css', 'js', 'sessions', 'status', 'html'))) {
+        if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'sessions', 'status', 'html'))) {
             if (!empty($this->$name)) {
                 return $this->$name;
             }
@@ -184,11 +181,14 @@ class Aurora
     }
 
     /**
-     * @param string $name Variable to set.
+     * Magic setter for setting private properties.
+     *
+     * @param string $name The name of the property.
+     * @param mixed $value The value to set.
      */
     public function __set(string $name, $value): void
     {
-        if (in_array($name, array('api', 'preload', 'css', 'js', 'sessions'))) {
+        if (in_array($name, array('dns', 'preload', 'css', 'js', 'sessions'))) {
             if (!is_array($name) || !count($this->$name)) {
                 $this->$name = $value;
             } else {
@@ -204,10 +204,10 @@ class Aurora
     }
 
     /**
-     * Process stylesheets and return a string to insert into <head>.
+     * Generate CSS <link/> tags.
      *
-     * @return string|bool Return stylesheet string for insertion into <head>
-     *                     or throw exception and return null.
+     * @return string|null The HTML string of styles.
+     * @throws AuroraException If the CSS file or its hash does not exist.
      */
     private function htmlStyles(): ?string
     {
@@ -216,11 +216,10 @@ class Aurora
             $str .= "\n";
             foreach ($this->css as $path => $url) {
                 if (!file_exists($path) or !file_exists($path . '.sha512')) {
-                    throw new \Exception("{$path}.sha384 does not exist.");
-                    return null;
+                    throw new AuroraException("{$path}.sha512 does not exist.", 'styles', 1);
                 }
                 $sha512 = trim(file_get_contents($path . '.sha512'));
-                if (!empty($sha512)) {
+                if (isset($sha512) && !empty($sha512)) {
                     $str .= sprintf("\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"\n", $url);
                     $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", $sha512);
                 }
@@ -230,18 +229,18 @@ class Aurora
     }
 
     /**
-     * Process all preloaded files and create string to insert into <head>.
+     * Generate preload <link/> tags.
      *
-     * @return string Return preload string for insertion into <head> or throw
-     *                exception and return null.
+     * @return string|null The HTML string of preload links.
+     * @throws AuroraException If the preload file or its hash does not exist.
      */
     private function htmlPreload(): ?string
     {
         $str = "";
         if (!empty($this->preload)) {
             $str .= "\n";
-            if (count($this->api)) {
-                foreach ($this->api as $url) {
+            if (count($this->dns)) {
+                foreach ($this->dns as $url) {
                     // add dns prefetch
                     $str .= sprintf("\t<link rel=\"dns-prefetch\" href=\"//%s\" />\n", $url);
                     $str .= sprintf("\t<link rel=\"preconnect\" href=\"//%s\" crossorigin />\n", $url);
@@ -250,27 +249,22 @@ class Aurora
             }
             foreach ($this->preload as $url => $type) {
                 if (in_array($type, array("script", "style"))) {
-                    $path = "";
-                    foreach ($this->css as $cpath => $curl) {
-                        if (stristr($curl, $url) !== false) {
-                            $path = $cpath;
-                        }
+                    $path = '..' . $this->aurora_cdn . $url;
+                    if (!file_exists($path)) {
+                        throw new AuroraException("{$path} does not exist.", 'preload', 1);
+                    } else if (!file_exists("{$path}.sha512")) {
+                        throw new AuroraException("{$url}.sha512 does not exist.", 'preload', 1);
                     }
-                    foreach ($this->js as $cpath => $curl) {
-                        if (stristr($curl, $url) !== false) {
-                            $path = $cpath;
-                        }
+
+                    $sha512 = trim(file_get_contents("{$path}.sha512"));
+                    if (!isset($this->dns) || empty($this->dns)) {
+                        throw new AuroraException("DNS prefetch not found!", 'dns', 1);
                     }
-                    if (!file_exists($path) or !file_exists($path . '.sha512')) {
-                        throw new \Exception("{$path}.sha384 does not exist.");
-                        return null;
-                    }
-                    $sha512 = trim(file_get_contents($path . '.sha512'));
-                    if (!empty($sha512)) {
-                        $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", ("//" . $this->api[0] . trim($url)), strtolower(trim($type)), $sha512);
+                    if (isset($sha512) && !empty($sha512)) {
+                        $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", ("//" . $this->dns[0] . trim($url)), strtolower(trim($type)), $sha512);
                     }
                 } else {
-                    $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\" crossorigin />\n", ("//" . $this->api[0] . trim($url)), strtolower(trim($type)));
+                    $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\" crossorigin />\n", ("//" . $this->dns[0] . trim($url)), strtolower(trim($type)));
                 }
             }
         }
@@ -278,11 +272,10 @@ class Aurora
     }
 
     /**
-     * Process all javascript files and create string to place at the end of
-     * <body>.
+     * Generate JavaScript <script/> tags.
      *
-     * @return string Return script string for insertion into <body> or
-     *                throw exception and return null.
+     * @return string|null The HTML string of script tags.
+     * @throws AuroraException If the JS file or its hash does not exist.
      */
     private function htmlScripts(): ?string
     {
@@ -293,12 +286,11 @@ class Aurora
                 if ($path == "<external>") {
                     $str .= sprintf("\t<script src=\"%s\" async defer></script>\n", $url);
                 } else {
-                    if (!file_exists($path) or !file_exists($path . '.sha512')) {
-                        throw new \Exception("{$path}.sha512 does not exist.");
-                        return null;
+                    if (!file_exists($path) or !file_exists("{$path}.sha512")) {
+                        throw new AuroraException("{$url}.sha512 does not exist.", 'scripts', 1);
                     }
-                    $sha512 = trim(file_get_contents($path . '.sha512'));
-                    if (!empty($sha512)) {
+                    $sha512 = trim(file_get_contents("{$path}.sha512"));
+                    if (isset($sha512) && !empty($sha512)) {
                         $str .= sprintf("\t<script src=\"%s\" defer=\"defer\"\n", $url);
                         $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
                     }
@@ -309,11 +301,10 @@ class Aurora
     }
 
     /**
-     * Replace variables and/or functions with cooresponding data.
+     * Replace variables in a template line.
      *
-     * @param string $line Line of text to be analyzed and regexp strings applied.
-     *
-     * @return string The template line complete with replacements.
+     * @param string $line The line from the template.
+     * @return string The line with variables replaced.
      */
     private function replace(string $line): string
     {
@@ -339,10 +330,9 @@ class Aurora
     }
 
     /**
-     * Render the Aurora HTML5 template specified, replacing all variables
-     * accordingly, and then outputing the code.
+     * Render the template file.
      *
-     * @return bool True on success and false upon any failure.
+     * @return bool True on success, false on failure.
      */
     private function render(): bool
     {
@@ -364,12 +354,11 @@ class Aurora
     }
 
     /**
-     * Sets the value of a php configuration option.
+     * Set a PHP configuration option.
      *
-     * @param string $setting Configuration option to change.
-     * @param string $value New value for the option.
-     *
-     * @return bool True on success and false upon any failure.
+     * @param string $setting The configuration option.
+     * @param string $value The value to set.
+     * @return bool True on success, false on failure.
      */
     private function phpSet($setting, $value): bool
     {
@@ -381,11 +370,10 @@ class Aurora
     }
 
     /**
-     * Pull the version string from the top of the main project file.
+     * Get the project version from the specified file.
      *
-     * @param string $project_file The main project file.
-     *
-     * @return string The version string, error message, or null.
+     * @param string $project_file The project file.
+     * @return string|null The project version or null on failure.
      */
     private function projectVersion(string $project_file): ?string
     {
@@ -417,13 +405,12 @@ class Aurora
     }
 
     /**
-     * Calculate runtime formula (compute/syscall).
+     * Get the runtime of a specific process.
      *
-     * @param array $ru Resource usages at the end of script run.
-     * @param array $rus Resource usages at start of script.
-     * @param string $index Time used in microseconds (utime/stime), user/system.
-     *
-     * @return int Runtime in milliseconds.
+     * @param array $ru The current resource usage.
+     * @param array $rus The previous resource usage.
+     * @param string $index The index to calculate.
+     * @return int The runtime in milliseconds.
      */
     private function rutime(array $ru, array $rus, string $index): int
     {
@@ -432,12 +419,11 @@ class Aurora
     }
 
     /**
-     * Put the render time together in a formatted string.
+     * Render the time taken for rendering.
      *
-     * @param array $ru Resource usages at the end of script run.
-     * @param array $rus Resource usages at the start of script.
-     *
-     * @return string Page render time.
+     * @param array $ru The current resource usage.
+     * @param array $rus The previous resource usage.
+     * @return string The formatted render time.
      */
     private function renderTime(array $ru, array $rus): string
     {
@@ -445,13 +431,12 @@ class Aurora
     }
 
     /**
-     * Return the page render time.
+     * Generate an HTML comment with project version and render time.
      *
-     * @param array $rus Resource usages at the start of script.
-     * @param string $script Filename for currently running script.
-     * @param boolean $vim Whether or not to add a Vim modeline.
-     *
-     * @return string Page footer comment.
+     * @param array $rus The previous resource usage.
+     * @param string $script The script file.
+     * @param bool $vim Flag to include vim settings.
+     * @return string The generated HTML comment.
      */
     public function comment(array $rus, string $script, bool $vim = false): string
     {
@@ -461,10 +446,9 @@ class Aurora
     }
 
     /**
-     * Using the template and all set variables output the page header from
-     * html tag to body tag.
+     * Render the HTML header.
      *
-     * @return bool True on success and false upon any failure.
+     * @return bool True on success, false on failure.
      */
     public function htmlHeader(): bool
     {
@@ -480,10 +464,9 @@ class Aurora
     }
 
     /**
-     * Utilizing the javascript variable output all script tags and then close
-     * out the body and html tags.
+     * Render the HTML footer.
      *
-     * @return bool True on success and false upon any failure.
+     * @return bool True on success, false on failure.
      */
     public function htmlFooter(): bool
     {
@@ -495,9 +478,10 @@ class Aurora
     }
 
     /**
-     * Enable sessions, optionally setting a session name for cookies.
+     * Enable sessions with a specific session name.
      *
-     * @return bool True on success and false upon any failure.
+     * @param string $session_name The session name.
+     * @return bool True on success, false on failure.
      */
     public function enableSessions(string $session_name = ""): bool
     {
@@ -509,9 +493,9 @@ class Aurora
     }
 
     /**
-     * Create a new collision free session id.
+     * Regenerate the session ID.
      *
-     * @return bool True on success and false upon any failure.
+     * @return bool True on success, false on failure.
      */
     public function sessionRegenerateID(): bool
     {
@@ -534,7 +518,9 @@ class Aurora
     }
 
     /**
+     * Test the replaced variables and generate a report.
      *
+     * @return string The report of replaced variables.
      */
     public function testVariables(): string
     {
@@ -551,6 +537,95 @@ class Aurora
             }
         }
         return $str;
+    }
+
+    /**
+     * Exception handler for the Aurora class.
+     *
+     * @param \Throwable $exception The exception to handle.
+     */
+    public static function exceptionHandler(\Throwable $exception): void
+    {
+        if (intval(ini_get('display_errors')) === 1) {
+            if ($exception->getCode() === 1) {
+                echo "</head>\n\n<body>\n\n";
+            }
+            echo $exception;
+            echo "\n</body>\n</html>";
+        } else {
+            // error_log
+        }
+    }
+}
+
+/**
+ * Class AuroraException
+ *
+ * This class extends the built-in Exception class to provide custom functionality
+ * for handling exceptions in the Aurora application.
+ */
+class AuroraException extends \Exception
+{
+    /**
+     * @var string $type Project base directory.
+     */
+    private $type = "";
+
+    /**
+     * AuroraException constructor.
+     *
+     * @param string $message The exception message
+     * @param int|null $code The exception code (optional)
+     */
+    public function __construct(string $message, string $type, int $code = 0)
+    {
+        // set exception type
+        $this->type = $type;
+        // call the parent constructor with the provided message and code
+        parent::__construct($message, $code);
+    }
+
+    /**
+     * Convert the exception to a string.
+     *
+     * @return string A string representation of the exception including the code and message
+     */
+    public function __toString(): string
+    {
+        // return a formatted string with the exception code and message
+        return "\t<h3>Aurora - Warning!</h3>\n\tCode: <tt>" . $this->getCode() . "</tt><br/>\n\tType: <tt>" . $this->getType() . "</tt><br/>\n\tMessage: <tt>" . htmlentities($this->getMessage()) . "</tt>\n";
+    }
+
+    /**
+     * Get the exception instance.
+     *
+     * @return string The current exception instance
+     */
+    public function getException(): string
+    {
+        return $this;
+    }
+
+    /**
+     * Get the exception type.
+     *
+     * @return string The current exception type
+     */
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    /**
+     * Handle a static exception.
+     *
+     * @param AuroraException $exception The exception instance to handle
+     * @return void
+     */
+    public static function getStaticException($exception)
+    {
+        // call the getException method on the provided exception instance
+        $exception->getException();
     }
 }
 
