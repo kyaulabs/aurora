@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: sql.inc.php,v 1.0.6 2024/07/22 23:03:33 -0700 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.0.7 2024/07/26 03:54:40 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -175,6 +175,12 @@ class SQLHandler
         if (intval(ini_get('display_errors')) === 1) {
             die($msg);
         } else {
+            error_log("MYSQL: " . $e->getMessage());
+            foreach ($e->getTrace() as $line) {
+                $add = !empty($line['class']) ? $line['class'] . $line['type'] : '';
+                $path = $line['file'] . " (line " . $line['line'] . ")";
+                error_log("MYSQL: " . $add . $line['function'] . '() ' . $line['file'] . ' (line ' . $line['line'] . ') in ' . str_replace($_SERVER['DOCUMENT_ROOT'], "", $path));
+            }
             die();
         }
     }

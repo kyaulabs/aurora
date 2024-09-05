@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.6 2024/07/22 22:04:28 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.0.7 2024/07/26 00:11:19 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -44,13 +44,9 @@ class Aurora
     private $aurora_cdn = "";
     /** @var string $aurora_template The template file name */
     private $aurora_template = "";
-    /** @var string $session_name The name of the session */
-    private $session_name = "KYAULabs";
 
     /** @var bool $status The status of the instance */
     private $status = true;
-    /** @var bool $sessions Flag indicating if sessions are enabled */
-    private $sessions = false;
     /** @var bool $html Flag indicating if HTML output is enabled */
     private $html = false;
 
@@ -107,27 +103,6 @@ class Aurora
             return;
         } else {
             $this->aurora_cdn = $cdn;
-        }
-
-        // Enable secure sessions
-        if ($this->sessions) {
-            $this->phpSet('session.use_strict_mode', '1');
-            session_start([
-                'cookie_domain' => $_SERVER['HTTP_HOST'],
-                'cookie_httponly' => 1,
-                'cookie_lifetime' => 86400 * 30,
-                'cookie_samesite' => 'Strict',
-                'cookie_secure' => 1,
-                'session_name' => $this->session_name,
-            ]);
-            // Do not allow expired sessions
-            if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
-                // last request was more than 30 minutes ago
-                session_unset();
-                session_destroy();
-                session_start();
-            }
-            $this->sessionRegenerateID();
         }
 
         // Enable unicode and set default timezone to UTC.
@@ -474,46 +449,6 @@ class Aurora
             printf("%s", $this->htmlScripts());
         }
         printf("\n</body>\n</html>");
-        return 1;
-    }
-
-    /**
-     * Enable sessions with a specific session name.
-     *
-     * @param string $session_name The session name.
-     * @return bool True on success, false on failure.
-     */
-    public function enableSessions(string $session_name = ""): bool
-    {
-        if ($session_name != "") {
-            $this->session_name = $session_name;
-        }
-        $this->sessions = true;
-        return 1;
-    }
-
-    /**
-     * Regenerate the session ID.
-     *
-     * @return bool True on success, false on failure.
-     */
-    public function sessionRegenerateID(): bool
-    {
-        // ensure sessions are active
-        if (session_status() != PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-
-        $newid = session_create_id(strtolower($this->session_name) . '-');
-        $_SESSION['last_activity'] = time();
-        session_commit();
-
-        // Make sure to accept user defined session id.
-        // NOTE: You must enable use_strict_mode for normal operations.
-        $this->phpSet('session.use_strict_mode', '0');
-        session_id($newid);
-        session_start();
-
         return 1;
     }
 
