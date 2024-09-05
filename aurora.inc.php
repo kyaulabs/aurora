@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.7 2024/07/26 00:11:19 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.0.8 2024/09/04 22:25:19 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -33,7 +33,7 @@ namespace KYAULabs;
  * Class Aurora
  *
  * This class provides functionality for managing Aurora templates and CDN directories,
- * handling sessions, and rendering HTML content with CSS and JavaScript inclusion.
+ * and rendering HTML content with CSS and JavaScript inclusion.
  */
 class Aurora
 {
@@ -142,7 +142,7 @@ class Aurora
      */
     public function __get(string $name): ?string
     {
-        if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'sessions', 'status', 'html'))) {
+        if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'status', 'html'))) {
             if (!empty($this->$name)) {
                 return $this->$name;
             }
@@ -163,7 +163,7 @@ class Aurora
      */
     public function __set(string $name, $value): void
     {
-        if (in_array($name, array('dns', 'preload', 'css', 'js', 'sessions'))) {
+        if (in_array($name, array('dns', 'preload', 'css', 'js'))) {
             if (!is_array($name) || !count($this->$name)) {
                 $this->$name = $value;
             } else {
