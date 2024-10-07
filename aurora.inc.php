@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.8 2024/09/04 22:25:19 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.0.9 2024/10/07 15:53:50 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -56,6 +56,8 @@ class Aurora
     private $dns = [];
     /** @var array $js JavaScript files to include */
     private $js = [];
+    /** @var array $js JavaScript modules to include */
+    private $mjs = [];
     /** @var array $preload Preload resources */
     private $preload = [];
     /** @var array $vars Variables for template replacement */
@@ -142,7 +144,7 @@ class Aurora
      */
     public function __get(string $name): ?string
     {
-        if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'status', 'html'))) {
+        if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'mjs', 'status', 'html'))) {
             if (!empty($this->$name)) {
                 return $this->$name;
             }
@@ -163,7 +165,7 @@ class Aurora
      */
     public function __set(string $name, $value): void
     {
-        if (in_array($name, array('dns', 'preload', 'css', 'js'))) {
+        if (in_array($name, array('dns', 'preload', 'css', 'js', 'mjs'))) {
             if (!is_array($name) || !count($this->$name)) {
                 $this->$name = $value;
             } else {
@@ -255,6 +257,23 @@ class Aurora
     private function htmlScripts(): ?string
     {
         $str = "";
+        if (!empty($this->mjs)) {
+            $str .= "\n";
+            foreach ($this->mjs as $path => $url) {
+                if ($path == "<external>") {
+                    $str .= sprintf("\t<script src=\"%s\" type=\"module\" async defer></script>\n", $url);
+                } else {
+                    if (!file_exists($path) or !file_exists("{$path}.sha512")) {
+                        throw new AuroraException("{$url}.sha512 does not exist.", 'scripts', 1);
+                    }
+                    $sha512 = trim(file_get_contents("{$path}.sha512"));
+                    if (isset($sha512) && !empty($sha512)) {
+                        $str .= sprintf("\t<script src=\"%s\" type=\"module\" defer=\"defer\"\n", $url);
+                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
+                    }
+                }
+            }
+        }
         if (!empty($this->js)) {
             $str .= "\n";
             foreach ($this->js as $path => $url) {
@@ -445,7 +464,7 @@ class Aurora
      */
     public function htmlFooter(): bool
     {
-        if (!empty($this->js)) {
+        if (!empty($this->js) || !empty($this->mjs)) {
             printf("%s", $this->htmlScripts());
         }
         printf("\n</body>\n</html>");
