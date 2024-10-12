@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.0.9 2024/10/07 15:53:50 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.1.0 2024/10/11 22:17:26 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -256,12 +256,14 @@ class Aurora
      */
     private function htmlScripts(): ?string
     {
+        $ext = 1;
         $str = "";
         if (!empty($this->mjs)) {
             $str .= "\n";
             foreach ($this->mjs as $path => $url) {
                 if ($path == "<external>") {
-                    $str .= sprintf("\t<script src=\"%s\" type=\"module\" async defer></script>\n", $url);
+                    $str .= sprintf("\t<script src=\"%s\" type=\"module\" id=\"ext%d\" async defer></script>\n", $url, $ext);
+                    $ext++;
                 } else {
                     if (!file_exists($path) or !file_exists("{$path}.sha512")) {
                         throw new AuroraException("{$url}.sha512 does not exist.", 'scripts', 1);
@@ -278,7 +280,8 @@ class Aurora
             $str .= "\n";
             foreach ($this->js as $path => $url) {
                 if ($path == "<external>") {
-                    $str .= sprintf("\t<script src=\"%s\" async defer></script>\n", $url);
+                    $str .= sprintf("\t<script src=\"%s\" id=\"ext%d\" async defer></script>\n", $url, $ext);
+                    $ext++;
                 } else {
                     if (!file_exists($path) or !file_exists("{$path}.sha512")) {
                         throw new AuroraException("{$url}.sha512 does not exist.", 'scripts', 1);
