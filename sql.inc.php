@@ -54,7 +54,7 @@ class SQLHandler
     public $result = null;
 
     private $db = null;
-    private $err = self::INTERNAL_HANDLING;
+    protected $err = self::INTERNAL_HANDLING;
 
     /*
         * Create a new database handler object to interact with the database.
@@ -63,16 +63,16 @@ class SQLHandler
         * @param string $db The database to connect to. This is required.
         * @param array $options PDO connection options array. This is optional and will override defaults.
         */
-    public function __construct(string $db = null, $options = [])
+    public function __construct(?string $db = null, $options = [])
     {
         // Enable unicode and set default timezone to UTC.
-        mb_internal_encoding('UTF-8');
+        if (function_exists('mb_internal_encoding')) mb_internal_encoding('UTF-8');
         ini_set('default_charset', 'UTF-8');
         date_default_timezone_set('UTC');
 
         $user = "";
         $passwd = "";
-        if (file_exists(__DIR__ . 'settings.inc.php')) include_once(__DIR__ . '/settings.inc.php');
+        if (file_exists(__DIR__ . '/settings.inc.php')) include_once(__DIR__ . '/settings.inc.php');
         if ($db == null) {
             throw new Exception('Required parameter is null.');
             return;
@@ -91,7 +91,9 @@ class SQLHandler
         ];
         $options = array_replace($defaults, $options);
         $this->db = $db;
-        $dsn = "mysql:host=" . $this::SQL_HOST . ";dbname=" . $this->db . ";port" . $this::SQL_PORT . ";charset=utf8mb4";
+        $sql_host = defined("SQL_HOST") ? SQL_HOST : self::SQL_HOST_FALLBACK;
+        $sql_port = defined("SQL_PORT") ? SQL_PORT : self::SQL_PORT;
+        $dsn = "mysql:host=" . $sql_host . ";dbname=" . $this->db . ";port=" . $sql_port . ";charset=utf8mb4";
 
         try {
             $this->pdo = new \PDO($dsn, $user, $passwd, $options);

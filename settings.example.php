@@ -36,6 +36,8 @@
  *
  */
 
+define("SQL_HOST", "127.0.0.1");
+define("SQL_PORT", 3306);
 define("SQL_USER", "username");
 define("SQL_PASSWD", "password");
 
