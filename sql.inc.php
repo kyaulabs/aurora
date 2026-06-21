@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: sql.inc.php,v 1.0.7 2024/07/26 03:54:40 -0700 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.0.8 2026/06/20 20:16:15 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -11,7 +11,7 @@
  * ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀
  *
  * Aurora HTML5 Template Engine
- * Copyright (C) 2024 KYAU Labs (https://kyaulabs.com)
+ * Copyright (C) 2026 KYAU Labs (https://kyaulabs.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -91,7 +91,7 @@ class SQLHandler
         ];
         $options = array_replace($defaults, $options);
         $this->db = $db;
-        $sql_host = defined("SQL_HOST") ? SQL_HOST : self::SQL_HOST_FALLBACK;
+        $sql_host = defined("SQL_HOST") ? SQL_HOST : self::SQL_HOST;
         $sql_port = defined("SQL_PORT") ? SQL_PORT : self::SQL_PORT;
         $dsn = "mysql:host=" . $sql_host . ";dbname=" . $this->db . ";port=" . $sql_port . ";charset=utf8mb4";
 
@@ -110,7 +110,15 @@ class SQLHandler
     public function setDatabase($name): bool
     {
         $this->db = $name;
-        return ($this->query("USE ?", array($name))) ? true : false;
+        // USE is a session-level statement — can't use prepared params
+        $name = str_replace('`', '', $name);
+        try {
+            $this->pdo->exec("USE `{$name}`");
+            return true;
+        } catch (PDOException $e) {
+            $this->procException($e);
+            return false;
+        }
     }
 
     /*

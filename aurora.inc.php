@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.1.0 2024/10/11 22:17:26 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.1.1 2026/06/20 20:20:34 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -11,7 +11,7 @@
  * ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀
  *
  * Aurora HTML5 Template Engine
- * Copyright (C) 2024 KYAU Labs (https://kyaulabs.com)
+ * Copyright (C) 2026 KYAU Labs (https://kyaulabs.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -96,6 +96,7 @@ class Aurora
             }
         }
         // check if CDN directory exist
+        $orig_dir = __DIR__;
         $backtrace = debug_backtrace();
         if (isset($backtrace[0]['file'])) {
             $orig_dir = dirname($backtrace[0]['file']);
@@ -113,7 +114,7 @@ class Aurora
         date_default_timezone_set('UTC');
 
         // Set the status and html output variables accordingly.
-        ($status) ? '' : $this->status = $status;
+        $this->status = $status;
         ($html) ? $this->html = $html : '';
 
         // Set logging settings accordingly.
@@ -262,7 +263,7 @@ class Aurora
             $str .= "\n";
             foreach ($this->mjs as $path => $url) {
                 if ($path == "<external>") {
-                    $str .= sprintf("\t<script src=\"%s\" type=\"module\" id=\"ext%d\" async defer></script>\n", $url, $ext);
+                    $str .= sprintf("\t<script src=\"%s\" type=\"module\" id=\"ext%d\"></script>\n", $url, $ext);
                     $ext++;
                 } else {
                     if (!file_exists($path) or !file_exists("{$path}.sha512")) {
@@ -510,7 +511,7 @@ class Aurora
             echo $exception;
             echo "\n</body>\n</html>";
         } else {
-            // error_log
+            error_log()
         }
     }
 }

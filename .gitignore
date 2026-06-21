@@ -5,6 +5,11 @@ settings.inc.php
 *.ans
 *.psd
 
+# Templates
+html/**
+!html/
+!html/index.html
+
 # Visual Studio cache directory
 */.vs/
 .vs/
