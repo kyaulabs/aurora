@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.1.1 2026/06/20 20:20:34 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.1.2 2026/06/20 22:08:15 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -42,6 +42,8 @@ class Aurora
 
     /** @var string $aurora_cdn The CDN directory path */
     private $aurora_cdn = "";
+    /** @var string|null $templateDir Custom template directory (overlay) */
+    private $templateDir = null;
     /** @var string $aurora_template The template file name */
     private $aurora_template = "";
 
@@ -72,9 +74,10 @@ class Aurora
      * @param string|null $cdn The CDN directory path.
      * @param bool $status The status flag.
      * @param bool $html The HTML output flag.
+     * @param string|null $templateDir Custom template directory (overlay: checked first, falls back to default).
      * @throws AuroraException If required parameters are null or invalid directories.
      */
-    public function __construct(?string $template = null, ?string $cdn = '/cdn', bool $status = false, bool $html = false)
+    public function __construct(?string $template = null, ?string $cdn = '/cdn', bool $status = false, bool $html = false, ?string $templateDir = null)
     {
         // error handling
         @set_exception_handler(['\KYAULabs\Aurora', 'exceptionHandler']);
@@ -83,12 +86,15 @@ class Aurora
         ini_set('error_reporting', '-1');
         ini_set('html_errors', '1');
 
+        // store custom template directory (overlay path)
+        $this->templateDir = $templateDir;
+
         // check if any arguments are null
         if (count(array_filter([$template, $cdn])) == 1) {
             throw new AuroraException('Required parameter is null.', 'param', 1);
             return;
         } else {
-            if (!file_exists(self::AURORA_DIR . "/{$template}")) {
+            if (!file_exists($this->resolveTemplatePath($template))) {
                 throw new AuroraException('Aurora HTML5 template not found.', 'html', 1);
                 return;
             } else {
@@ -328,13 +334,30 @@ class Aurora
     }
 
     /**
+     * Resolve the template path with overlay support.
+     *
+     * Checks the custom $templateDir first; if the file exists there, uses it.
+     * Otherwise falls back to the default AURORA_DIR.
+     *
+     * @param string $template The template file name.
+     * @return string The resolved full path to the template file.
+     */
+    private function resolveTemplatePath(string $template): string
+    {
+        if ($this->templateDir !== null && file_exists($this->templateDir . '/' . $template)) {
+            return $this->templateDir . '/' . $template;
+        }
+        return self::AURORA_DIR . '/' . $template;
+    }
+
+    /**
      * Render the template file.
      *
      * @return bool True on success, false on failure.
      */
     private function render(): bool
     {
-        $fd = @fopen(self::AURORA_DIR . "/" . $this->aurora_template, 'r');
+        $fd = @fopen($this->resolveTemplatePath($this->aurora_template), 'r');
         if ($fd) {
             while (($buffer = fgets($fd, 4096)) !== false) {
                 printf("%s", $this->replace($buffer));
