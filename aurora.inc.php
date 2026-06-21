@@ -511,7 +511,7 @@ class Aurora
             echo $exception;
             echo "\n</body>\n</html>";
         } else {
-            error_log()
+            error_log();
         }
     }
 }
