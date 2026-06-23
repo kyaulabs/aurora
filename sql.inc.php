@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: sql.inc.php,v 1.0.8 2026/06/20 20:16:15 -0700 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.0.9 2026/06/22 22:00:25 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -80,9 +80,6 @@ class SQLHandler
         if (! defined('SQL_USER')) {
             throw new Exception('No settings.inc.php exists.');
             return;
-        } else {
-            $user = SQL_USER;
-            $passwd = SQL_PASSWD;
         }
         $defaults = [
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -91,9 +88,17 @@ class SQLHandler
         ];
         $options = array_replace($defaults, $options);
         $this->db = $db;
-        $sql_host = defined("SQL_HOST") ? SQL_HOST : self::SQL_HOST;
-        $sql_port = defined("SQL_PORT") ? SQL_PORT : self::SQL_PORT;
-        $dsn = "mysql:host=" . $sql_host . ";dbname=" . $this->db . ";port=" . $sql_port . ";charset=utf8mb4";
+        if (defined('SQL_SOCKET') && SQL_SOCKET != "") {
+            $dsn = "mysql:unix_socket=" . SQL_SOCKET . ";dbname=" . $this->db . ";charset=utf8mb4";
+            $user = SQL_USER;
+            $passwd = null;
+        } else {
+            $sql_host = defined("SQL_HOST") ? SQL_HOST : self::SQL_HOST;
+            $sql_port = defined("SQL_PORT") ? SQL_PORT : self::SQL_PORT;
+            $user = SQL_USER;
+            $passwd = SQL_PASSWD;
+            $dsn = "mysql:host=" . $sql_host . ";dbname=" . $this->db . ";port=" . $sql_port . ";charset=utf8mb4";
+        }
 
         try {
             $this->pdo = new \PDO($dsn, $user, $passwd, $options);
@@ -127,7 +132,7 @@ class SQLHandler
         * @param array $args The parameters array, the one attached to execute()
         * @return PDOStatement|boolean The PDOStatement object retreived from the database or false if something failed.
         */
-    public function query($sql, array $args = array()): PDOStatement
+    public function query($sql, array $args = array()): PDOStatement|bool
     {
         try {
             if ($this->pdo !== null) {
@@ -140,6 +145,7 @@ class SQLHandler
             return false;
         } catch (PDOException $e) {
             $this->procException($e);
+            return false;
         }
     }
 

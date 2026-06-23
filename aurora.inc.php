@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.1.2 2026/06/20 22:08:15 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.1.3 2026/06/22 22:00:25 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -199,13 +199,16 @@ class Aurora
         if (!empty($this->css)) {
             $str .= "\n";
             foreach ($this->css as $path => $url) {
-                if (!file_exists($path) or !file_exists($path . '.sha512')) {
-                    throw new AuroraException("{$path}.sha512 does not exist.", 'styles', 1);
-                }
-                $sha512 = trim(file_get_contents($path . '.sha512'));
+                $hash = hash_file('sha512', $path);
+                $hash_bin = hash_file('sha512', $path, true);
+                $sha512 = base64_encode($hash_bin);
+                $ver = hexdec(substr($hash, 0, 8));
+
                 if (isset($sha512) && !empty($sha512)) {
-                    $str .= sprintf("\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"\n", $url);
-                    $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", $sha512);
+                    $str .= sprintf("\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s?v=%s\"\n", $url, $ver);
+                    $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin />\n", $sha512);
+                } else {
+                    throw new AuroraException("{$path} sha512 exception.", 'styles', 1);
                 }
             }
         }
@@ -236,16 +239,20 @@ class Aurora
                     $path = '..' . $this->aurora_cdn . $url;
                     if (!file_exists($path)) {
                         throw new AuroraException("{$path} does not exist.", 'preload', 1);
-                    } else if (!file_exists("{$path}.sha512")) {
-                        throw new AuroraException("{$url}.sha512 does not exist.", 'preload', 1);
                     }
 
-                    $sha512 = trim(file_get_contents("{$path}.sha512"));
+                    $hash = hash_file('sha512', $path);
+                    $hash_bin = hash_file('sha512', $path, true);
+                    $sha512 = base64_encode($hash_bin);
+                    $ver = hexdec(substr($hash, 0, 8));
+
                     if (!isset($this->dns) || empty($this->dns)) {
                         throw new AuroraException("DNS prefetch not found!", 'dns', 1);
                     }
                     if (isset($sha512) && !empty($sha512)) {
-                        $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", ("//" . $this->dns[0] . trim($url)), strtolower(trim($type)), $sha512);
+                        $str .= sprintf("\t<link rel=\"preload\" href=\"%s?v=%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin />\n", ("//" . $this->dns[0] . trim($url)), $ver, strtolower(trim($type)), $sha512);
+                    } else {
+                        throw new AuroraException("{$path} sha512 exception.", 'styles', 1);
                     }
                 } else {
                     $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\" crossorigin />\n", ("//" . $this->dns[0] . trim($url)), strtolower(trim($type)));
@@ -272,13 +279,16 @@ class Aurora
                     $str .= sprintf("\t<script src=\"%s\" type=\"module\" id=\"ext%d\"></script>\n", $url, $ext);
                     $ext++;
                 } else {
-                    if (!file_exists($path) or !file_exists("{$path}.sha512")) {
-                        throw new AuroraException("{$url}.sha512 does not exist.", 'scripts', 1);
+                    if (!file_exists($path)) {
+                        throw new AuroraException("{$url} does not exist.", 'scripts', 1);
                     }
-                    $sha512 = trim(file_get_contents("{$path}.sha512"));
+                    $hash = hash_file('sha512', $path);
+                    $hash_bin = hash_file('sha512', $path, true);
+                    $sha512 = base64_encode($hash_bin);
+                    $ver = hexdec(substr($hash, 0, 8));
                     if (isset($sha512) && !empty($sha512)) {
-                        $str .= sprintf("\t<script src=\"%s\" type=\"module\" defer=\"defer\"\n", $url);
-                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
+                        $str .= sprintf("\t<script src=\"%s?v=%s\" type=\"module\" defer=\"defer\"\n", $url, $ver);
+                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin></script>\n", $sha512);
                     }
                 }
             }
@@ -290,13 +300,16 @@ class Aurora
                     $str .= sprintf("\t<script src=\"%s\" id=\"ext%d\" async defer></script>\n", $url, $ext);
                     $ext++;
                 } else {
-                    if (!file_exists($path) or !file_exists("{$path}.sha512")) {
-                        throw new AuroraException("{$url}.sha512 does not exist.", 'scripts', 1);
+                    if (!file_exists($path)) {
+                        throw new AuroraException("{$url} does not exist.", 'scripts', 1);
                     }
-                    $sha512 = trim(file_get_contents("{$path}.sha512"));
+                    $hash = hash_file('sha512', $path);
+                    $hash_bin = hash_file('sha512', $path, true);
+                    $sha512 = base64_encode($hash_bin);
+                    $ver = hexdec(substr($hash, 0, 8));
                     if (isset($sha512) && !empty($sha512)) {
-                        $str .= sprintf("\t<script src=\"%s\" defer=\"defer\"\n", $url);
-                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
+                        $str .= sprintf("\t<script src=\"%s?v=%s\" defer=\"defer\"\n", $url, $ver);
+                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin></script>\n", $sha512);
                     }
                 }
             }
@@ -396,7 +409,7 @@ class Aurora
      * @param string $project_file The project file.
      * @return string|null The project version or null on failure.
      */
-    private function projectVersion(string $project_file): ?string
+    private function projectVersion(string $project_file, bool $hash = false): ?string
     {
         if (file_exists($project_file)) {
             $line = 1;
@@ -405,10 +418,14 @@ class Aurora
                 while (($buffer = fgets($fd, 4096)) !== false) {
                     if (substr($buffer, 0, 13) == ' * $KYAULabs:') {
                         $str = explode(' ', $buffer);
-                        $hash = substr(md5($str[5] . $str[6]), 0, 8);
                         fclose($fd);
                         $file = str_replace('.php', '.html', strtolower(basename($project_file)));
-                        return $str[2] . ' ' . $file . ',v ' . $str[4] . '-' . $hash;
+                        if ($hash) {
+                            $hash = substr(md5($str[5] . $str[6]), 0, 8);
+                            return $str[2] . ' ' . $file . ',v ' . $str[4] . '-' . $hash;
+                        } else {
+                            return 'v' . $str[4];
+                        }
                     }
                     $line++;
                 }
@@ -462,8 +479,19 @@ class Aurora
     public function comment(array $rus, string $script, bool $vim = false): string
     {
         $time = sprintf("%s", self::renderTime($rus, getrusage()));
-        $version = self::projectVersion($script);
+        $version = self::projectVersion($script, true);
         return sprintf("\n<!--\n\t%s  %s\n%s-->", $version, $time, ($vim ? "\tvim: ft=html sts=4 sw=4 ts=4 noet:\n" : ''));
+    }
+
+    /**
+     * Get the project version for a specific script.
+     *
+     * @param string $script
+     * @return string|null
+     */
+    public function version(string $script): ?string
+    {
+        return self::projectVersion($script);
     }
 
     /**
