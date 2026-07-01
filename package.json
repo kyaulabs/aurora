@@ -1,0 +1,14 @@
+{
+	"name": "aurora",
+	"private": true,
+	"description": "Aurora — PHP template framework for use with HTML5/AJAX.",
+	"devDependencies": {
+		"@eslint/js": "*",
+		"eslint": "*",
+		"playwright": "*",
+		"sass": "*",
+		"stylelint": "*",
+		"stylelint-config-standard-scss": "*",
+		"uglify-js": "*"
+	}
+}

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * $KYAULabs: settings.example.php,v 1.0.5 2026/06/22 22:00:25 -0700 kyau Exp $
+ * $KYAULabs: settings.example.php,v 1.0.6 2026/06/29 13:23:17 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -38,7 +38,7 @@
 
 define("SQL_HOST", "127.0.0.1");
 define("SQL_PORT", 3306);
-define("SQL_SOCKET", "/run/mysqld/mysqld.sock");
+define("SQL_SOCKET", "/run/mysqld/mysqld.sock"); // Linux-only; comment out or remove on Windows/macOS
 define("SQL_USER", "username");
 define("SQL_PASSWD", "password");
 

@@ -1,7 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * $KYAULabs: aurora.inc.php,v 1.1.3 2026/06/22 22:00:25 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.1.4 2026/06/29 13:21:45 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -62,6 +64,8 @@ class Aurora
     private $mjs = [];
     /** @var array $preload Preload resources */
     private $preload = [];
+    /** @var bool $dnsEmitted Whether DNS prefetch tags have been emitted */
+    private $dnsEmitted = false;
     /** @var array $vars Variables for template replacement */
     private $vars = [];
     /** @var array $vars_success Successfully replaced variables */
@@ -80,7 +84,7 @@ class Aurora
     public function __construct(?string $template = null, ?string $cdn = '/cdn', bool $status = false, bool $html = false, ?string $templateDir = null)
     {
         // error handling
-        @set_exception_handler(['\KYAULabs\Aurora', 'exceptionHandler']);
+        set_exception_handler(['\KYAULabs\Aurora', 'exceptionHandler']);
         ini_set('display_errors', '1');
         ini_set('display_startup_errors', '1');
         ini_set('error_reporting', '-1');
@@ -92,16 +96,15 @@ class Aurora
         // check if any arguments are null
         if (count(array_filter([$template, $cdn])) == 1) {
             throw new AuroraException('Required parameter is null.', 'param', 1);
-            return;
         } else {
             if (!file_exists($this->resolveTemplatePath($template))) {
                 throw new AuroraException('Aurora HTML5 template not found.', 'html', 1);
-                return;
             } else {
                 $this->aurora_template = $template;
             }
         }
-        // check if CDN directory exist
+        // Resolve CDN directory relative to the calling script, not Aurora's own __DIR__.
+        // debug_backtrace()[0] is safe because the constructor is always called directly.
         $orig_dir = __DIR__;
         $backtrace = debug_backtrace();
         if (isset($backtrace[0]['file'])) {
@@ -109,13 +112,14 @@ class Aurora
         }
         if (!is_dir($orig_dir . '/..' . $cdn)) {
             throw new AuroraException("Invalid directory: " . $orig_dir . '/' . $cdn, 'cdn', 1);
-            return;
         } else {
             $this->aurora_cdn = $cdn;
         }
 
         // Enable unicode and set default timezone to UTC.
-        if (function_exists('mb_internal_encoding')) mb_internal_encoding('UTF-8');
+        if (function_exists('mb_internal_encoding')) {
+            mb_internal_encoding('UTF-8');
+        }
         $this->phpSet('default_charset', 'UTF-8');
         date_default_timezone_set('UTC');
 
@@ -132,13 +136,15 @@ class Aurora
         } else {
             $this->phpSet('display_errors', '0');
             $this->phpSet('display_startup_errors', '0');
-            $this->phpSet('error_reporting', 'E_ALL');
+            $this->phpSet('error_reporting', (string)E_ALL);
             $this->phpSet('html_errors', '0');
         }
 
         // HTML Mode
         if ($this->html) {
-            if (function_exists('mb_http_output')) mb_http_output('UTF-8');
+            if (function_exists('mb_http_output')) {
+                mb_http_output('UTF-8');
+            }
             header('Content-Type: text/html; charset=UTF-8');
         }
     }
@@ -160,7 +166,7 @@ class Aurora
                 return $this->vars[$name];
             }
         }
-        echo "Error: unable to find variable '{$name}'\n";
+        trigger_error("Error: unable to find variable '{$name}'", E_USER_WARNING);
         return null;
     }
 
@@ -173,7 +179,7 @@ class Aurora
     public function __set(string $name, $value): void
     {
         if (in_array($name, array('dns', 'preload', 'css', 'js', 'mjs'))) {
-            if (!is_array($name) || !count($this->$name)) {
+            if (!is_array($this->$name) || !count($this->$name)) {
                 $this->$name = $value;
             } else {
                 $this->$name = array_merge($this->$name, $value);
@@ -183,8 +189,6 @@ class Aurora
             $this->vars[$name] = $value;
             return;
         }
-        echo "Error: unable to set '{$name}' variable to '{$value}'.\n";
-        return;
     }
 
     /**
@@ -200,16 +204,14 @@ class Aurora
             $str .= "\n";
             foreach ($this->css as $path => $url) {
                 $hash = hash_file('sha512', $path);
-                $hash_bin = hash_file('sha512', $path, true);
-                $sha512 = base64_encode($hash_bin);
+                if ($hash === false) {
+                    throw new AuroraException("{$path} hash computation failed.", 'styles', 1);
+                }
+                $sha512 = base64_encode(hex2bin($hash));
                 $ver = hexdec(substr($hash, 0, 8));
 
-                if (isset($sha512) && !empty($sha512)) {
-                    $str .= sprintf("\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s?v=%s\"\n", $url, $ver);
-                    $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin />\n", $sha512);
-                } else {
-                    throw new AuroraException("{$path} sha512 exception.", 'styles', 1);
-                }
+                $str .= sprintf("\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s?v=%s\"\n", $url, $ver);
+                $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", $sha512);
             }
         }
         return $str;
@@ -226,13 +228,13 @@ class Aurora
         $str = "";
         if (!empty($this->preload)) {
             $str .= "\n";
-            if (count($this->dns)) {
+            if (!$this->dnsEmitted && count($this->dns)) {
                 foreach ($this->dns as $url) {
-                    // add dns prefetch
                     $str .= sprintf("\t<link rel=\"dns-prefetch\" href=\"//%s\" />\n", $url);
-                    $str .= sprintf("\t<link rel=\"preconnect\" href=\"//%s\" crossorigin />\n", $url);
+                    $str .= sprintf("\t<link rel=\"preconnect\" href=\"//%s\" crossorigin=\"anonymous\" />\n", $url);
                 }
                 $str .= "\n";
+                $this->dnsEmitted = true;
             }
             foreach ($this->preload as $url => $type) {
                 if (in_array($type, array("script", "style"))) {
@@ -242,20 +244,18 @@ class Aurora
                     }
 
                     $hash = hash_file('sha512', $path);
-                    $hash_bin = hash_file('sha512', $path, true);
-                    $sha512 = base64_encode($hash_bin);
+                    if ($hash === false) {
+                        throw new AuroraException("{$path} hash computation failed.", 'preload', 1);
+                    }
+                    $sha512 = base64_encode(hex2bin($hash));
                     $ver = hexdec(substr($hash, 0, 8));
 
                     if (!isset($this->dns) || empty($this->dns)) {
                         throw new AuroraException("DNS prefetch not found!", 'dns', 1);
                     }
-                    if (isset($sha512) && !empty($sha512)) {
-                        $str .= sprintf("\t<link rel=\"preload\" href=\"%s?v=%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin />\n", ("//" . $this->dns[0] . trim($url)), $ver, strtolower(trim($type)), $sha512);
-                    } else {
-                        throw new AuroraException("{$path} sha512 exception.", 'styles', 1);
-                    }
+                    $str .= sprintf("\t<link rel=\"preload\" href=\"%s?v=%s\" as=\"%s\"\n\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\" />\n", ("//" . $this->dns[0] . trim($url)), $ver, strtolower(trim($type)), $sha512);
                 } else {
-                    $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\" crossorigin />\n", ("//" . $this->dns[0] . trim($url)), strtolower(trim($type)));
+                    $str .= sprintf("\t<link rel=\"preload\" href=\"%s\" as=\"%s\" crossorigin=\"anonymous\" />\n", ("//" . $this->dns[0] . trim($url)), strtolower(trim($type)));
                 }
             }
         }
@@ -283,13 +283,13 @@ class Aurora
                         throw new AuroraException("{$url} does not exist.", 'scripts', 1);
                     }
                     $hash = hash_file('sha512', $path);
-                    $hash_bin = hash_file('sha512', $path, true);
-                    $sha512 = base64_encode($hash_bin);
-                    $ver = hexdec(substr($hash, 0, 8));
-                    if (isset($sha512) && !empty($sha512)) {
-                        $str .= sprintf("\t<script src=\"%s?v=%s\" type=\"module\" defer=\"defer\"\n", $url, $ver);
-                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin></script>\n", $sha512);
+                    if ($hash === false) {
+                        throw new AuroraException("{$url} hash computation failed.", 'scripts', 1);
                     }
+                    $sha512 = base64_encode(hex2bin($hash));
+                    $ver = hexdec(substr($hash, 0, 8));
+                    $str .= sprintf("\t<script src=\"%s?v=%s\" type=\"module\" defer=\"defer\"\n", $url, $ver);
+                    $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
                 }
             }
         }
@@ -304,13 +304,13 @@ class Aurora
                         throw new AuroraException("{$url} does not exist.", 'scripts', 1);
                     }
                     $hash = hash_file('sha512', $path);
-                    $hash_bin = hash_file('sha512', $path, true);
-                    $sha512 = base64_encode($hash_bin);
-                    $ver = hexdec(substr($hash, 0, 8));
-                    if (isset($sha512) && !empty($sha512)) {
-                        $str .= sprintf("\t<script src=\"%s?v=%s\" defer=\"defer\"\n", $url, $ver);
-                        $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin></script>\n", $sha512);
+                    if ($hash === false) {
+                        throw new AuroraException("{$url} hash computation failed.", 'scripts', 1);
                     }
+                    $sha512 = base64_encode(hex2bin($hash));
+                    $ver = hexdec(substr($hash, 0, 8));
+                    $str .= sprintf("\t<script src=\"%s?v=%s\" defer=\"defer\"\n", $url, $ver);
+                    $str .= sprintf("\t\tintegrity=\"sha512-%s\"\n\t\tcrossorigin=\"anonymous\"></script>\n", $sha512);
                 }
             }
         }
@@ -326,19 +326,19 @@ class Aurora
     private function replace(string $line): string
     {
         foreach ($this->vars as $key => $value) {
-            $reg = '/{{[\s|\S](' . $key . ')[\s|\S]}}/';
+            $reg = '/{{[\s\S](' . $key . ')[\s\S]}}/';
             if (preg_match($reg, $line)) {
                 //echo "key:{$key} value:{$value}\n";
                 $this->vars_success[] = $key;
                 return preg_replace($reg, $value, $line);
             }
         }
-        $reg = '/{%[\s|\S](css\(\))[\s|\S]}\n/';
+        $reg = '/{%[\s\S](css\(\))[\s\S]%}\n/';
         if (preg_match($reg, $line)) {
             $this->vars_success[] = "~css";
             return preg_replace($reg, $this->htmlStyles(), $line);
         }
-        $reg = '/{%[\s|\S](preload\(\))[\s|\S]}\n/';
+        $reg = '/{%[\s\S](preload\(\))[\s\S]%}\n/';
         if (preg_match($reg, $line)) {
             $this->vars_success[] = "~preload";
             return preg_replace($reg, $this->htmlPreload(), $line);
@@ -377,14 +377,14 @@ class Aurora
             }
             if (!feof($fd)) {
                 echo "Error: unexpected fgets() failure.\n";
-                return 0;
+                return false;
             }
         } else {
             echo "Error: unexpected fopen() failure.\n";
-            return 0;
+            return false;
         }
         fclose($fd);
-        return 1;
+        return true;
     }
 
     /**
@@ -394,29 +394,34 @@ class Aurora
      * @param string $value The value to set.
      * @return bool True on success, false on failure.
      */
-    private function phpSet($setting, $value): bool
+    private function phpSet(string $setting, string $value): bool
     {
         if (ini_set($setting, $value) === false) {
             echo "Error: could not set {$setting} to {$value}, please ensure it's set on your system!\n";
-            return 0;
+            return false;
         }
-        return 1;
+        return true;
     }
 
     /**
      * Get the project version from the specified file.
      *
      * @param string $project_file The project file.
+     * @param bool $hash Whether to include an MD5 hash fragment.
      * @return string|null The project version or null on failure.
      */
     private function projectVersion(string $project_file, bool $hash = false): ?string
     {
         if (file_exists($project_file)) {
-            $line = 1;
             $fd = @fopen($project_file, 'r');
             if ($fd) {
                 while (($buffer = fgets($fd, 4096)) !== false) {
-                    if (substr($buffer, 0, 13) == ' * $KYAULabs:') {
+                    if (
+                        substr($buffer, 0, 13) == ' * $KYAULabs:' ||
+                        substr($buffer, 0, 12) == '# $KYAULabs:' ||
+                        substr($buffer, 0, 13) == '// $KYAULabs:' ||
+                        substr($buffer, 0, 13) == '/* $KYAULabs:'
+                    ) {
                         $str = explode(' ', $buffer);
                         fclose($fd);
                         $file = str_replace('.php', '.html', strtolower(basename($project_file)));
@@ -427,7 +432,6 @@ class Aurora
                             return 'v' . $str[4];
                         }
                     }
-                    $line++;
                 }
                 if (!feof($fd)) {
                     echo "Error: unexpected fgets() fail\n";
@@ -503,13 +507,13 @@ class Aurora
     {
         if (!isset($this->aurora_template) or empty($this->vars)) {
             echo "Error: template file and/or variables not set.\n";
-            return 0;
+            return false;
         }
         if (!$this->render()) {
             echo "Error: template rendering has failed.\n";
-            return 0;
+            return false;
         }
-        return 1;
+        return true;
     }
 
     /**
@@ -523,7 +527,7 @@ class Aurora
             printf("%s", $this->htmlScripts());
         }
         printf("\n</body>\n</html>");
-        return 1;
+        return true;
     }
 
     /**
@@ -562,7 +566,7 @@ class Aurora
             echo $exception;
             echo "\n</body>\n</html>";
         } else {
-            error_log();
+            error_log((string)$exception);
         }
     }
 }
@@ -583,8 +587,9 @@ class AuroraException extends \Exception
     /**
      * AuroraException constructor.
      *
-     * @param string $message The exception message
-     * @param int|null $code The exception code (optional)
+     * @param string $message The exception message.
+     * @param string $type The exception type (e.g. 'param', 'html', 'cdn', 'styles', 'preload', 'scripts', 'dns').
+     * @param int $code The exception code (default 0).
      */
     public function __construct(string $message, string $type, int $code = 0)
     {
@@ -602,17 +607,7 @@ class AuroraException extends \Exception
     public function __toString(): string
     {
         // return a formatted string with the exception code and message
-        return "\t<h3>Aurora - Warning!</h3>\n\tCode: <tt>" . $this->getCode() . "</tt><br/>\n\tType: <tt>" . $this->getType() . "</tt><br/>\n\tMessage: <tt>" . htmlentities($this->getMessage()) . "</tt>\n";
-    }
-
-    /**
-     * Get the exception instance.
-     *
-     * @return string The current exception instance
-     */
-    public function getException(): string
-    {
-        return $this;
+        return "\t<h3>Aurora - Warning!</h3>\n\tCode: <tt>" . $this->getCode() . "</tt><br/>\n\tType: <tt>" . $this->getType() . "</tt><br/>\n\tMessage: <tt>" . htmlentities($this->getMessage(), ENT_QUOTES | ENT_HTML5, 'UTF-8') . "</tt>\n";
     }
 
     /**
@@ -625,17 +620,6 @@ class AuroraException extends \Exception
         return $this->type;
     }
 
-    /**
-     * Handle a static exception.
-     *
-     * @param AuroraException $exception The exception instance to handle
-     * @return void
-     */
-    public static function getStaticException($exception)
-    {
-        // call the getException method on the provided exception instance
-        $exception->getException();
-    }
 }
 
 

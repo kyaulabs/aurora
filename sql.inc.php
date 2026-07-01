@@ -1,7 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * $KYAULabs: sql.inc.php,v 1.0.9 2026/06/22 22:00:25 -0700 kyau Exp $
+ * $KYAULabs: sql.inc.php,v 1.1.0 2026/06/29 13:23:36 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -29,10 +31,10 @@
 
 namespace KYAULabs;
 
-use \Exception as Exception;
-use \PDO as PDO;
-use \PDOException as PDOException;
-use \PDOStatement as PDOStatement;
+use Exception as Exception;
+use PDO as PDO;
+use PDOException as PDOException;
+use PDOStatement as PDOStatement;
 
 /**
  * SQL Handler
@@ -56,30 +58,31 @@ class SQLHandler
     private $db = null;
     protected $err = self::INTERNAL_HANDLING;
 
-    /*
-        * Create a new database handler object to interact with the database.
-        * @param string $user Username to connect with.
-        * @param string $passwd Password associated with the username.
-        * @param string $db The database to connect to. This is required.
-        * @param array $options PDO connection options array. This is optional and will override defaults.
-        */
-    public function __construct(?string $db = null, $options = [])
+    /**
+     * Create a new database handler object to interact with the database.
+     *
+     * @param string|null $db The database to connect to. This is required.
+     * @param array $options PDO connection options array. This is optional and will override defaults.
+     */
+    public function __construct(?string $db = null, array $options = [])
     {
         // Enable unicode and set default timezone to UTC.
-        if (function_exists('mb_internal_encoding')) mb_internal_encoding('UTF-8');
+        if (function_exists('mb_internal_encoding')) {
+            mb_internal_encoding('UTF-8');
+        }
         ini_set('default_charset', 'UTF-8');
         date_default_timezone_set('UTC');
 
         $user = "";
         $passwd = "";
-        if (file_exists(__DIR__ . '/settings.inc.php')) include_once(__DIR__ . '/settings.inc.php');
+        if (file_exists(__DIR__ . '/settings.inc.php')) {
+            include_once(__DIR__ . '/settings.inc.php');
+        }
         if ($db == null) {
             throw new Exception('Required parameter is null.');
-            return;
         }
         if (! defined('SQL_USER')) {
             throw new Exception('No settings.inc.php exists.');
-            return;
         }
         $defaults = [
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -107,16 +110,18 @@ class SQLHandler
         }
     }
 
-    /*
-        * Change the current database being accessed
-        * @param string $name The name of the database to connect to.
-        * @return boolean Whether or not the database change succeeded.
-        */
-    public function setDatabase($name): bool
+    /**
+     * Change the current database being accessed.
+     *
+     * @param string $name The name of the database to connect to.
+     * @return bool Whether or not the database change succeeded.
+     */
+    public function setDatabase(string $name): bool
     {
         $this->db = $name;
-        // USE is a session-level statement — can't use prepared params
-        $name = str_replace('`', '', $name);
+        if ($this->pdo === null) {
+            return false;
+        }
         try {
             $this->pdo->exec("USE `{$name}`");
             return true;
@@ -126,13 +131,14 @@ class SQLHandler
         }
     }
 
-    /*
-        * Process a query and get the PDOStatement object back
-        * @param string $sql The query to process. Use :paramname for named parameters and ? for anonymous parameters.
-        * @param array $args The parameters array, the one attached to execute()
-        * @return PDOStatement|boolean The PDOStatement object retreived from the database or false if something failed.
-        */
-    public function query($sql, array $args = array()): PDOStatement|bool
+    /**
+     * Process a query and get the PDOStatement object back.
+     *
+     * @param string $sql The query to process. Use :paramname for named parameters and ? for anonymous parameters.
+     * @param array $args The parameters array, the one attached to execute().
+     * @return PDOStatement|bool The PDOStatement object retrieved from the database or false if something failed.
+     */
+    public function query(string $sql, array $args = array()): PDOStatement|bool
     {
         try {
             if ($this->pdo !== null) {
@@ -149,11 +155,12 @@ class SQLHandler
         }
     }
 
-    /*
-        * Process exceptions based on the err setting
-        * @param PDOException $e The exception to process
-        * @throws PDOException If err is set to sql_handler::THROW_EXCEPTION
-        */
+    /**
+     * Process exceptions based on the err setting.
+     *
+     * @param PDOException $e The exception to process.
+     * @throws PDOException If err is set to SQLHandler::THROW_EXCEPTION.
+     */
     private function procException(PDOException &$e): void
     {
         switch ($this->err) {
@@ -168,10 +175,11 @@ class SQLHandler
         }
     }
 
-    /*
-        * Handle a PDOException by showing the stacktrace properly and dieing.
-        * @param PDOException $e The exception to handle
-        */
+    /**
+     * Handle a PDOException by showing the stacktrace properly.
+     *
+     * @param PDOException $e The exception to handle.
+     */
     public static function handleException(PDOException &$e): void
     {
         $trace = $e->getTrace();
@@ -185,19 +193,18 @@ class SQLHandler
             }
             $msg .= $line['function'] . "()";
             $path = $line['file'] . " (<strong>line</strong> " . $line['line'] . ")<br/>";
-            $msg .= " <strong>in</strong> " . str_replace($_SERVER['DOCUMENT_ROOT'], "", $path);
+            $msg .= " <strong>in</strong> " . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path);
         }
         $msg .= "</pre></span>";
         if (intval(ini_get('display_errors')) === 1) {
-            die($msg);
+            echo $msg;
         } else {
             error_log("MYSQL: " . $e->getMessage());
             foreach ($e->getTrace() as $line) {
                 $add = !empty($line['class']) ? $line['class'] . $line['type'] : '';
                 $path = $line['file'] . " (line " . $line['line'] . ")";
-                error_log("MYSQL: " . $add . $line['function'] . '() ' . $line['file'] . ' (line ' . $line['line'] . ') in ' . str_replace($_SERVER['DOCUMENT_ROOT'], "", $path));
+                error_log("MYSQL: " . $add . $line['function'] . '() ' . $line['file'] . ' (line ' . $line['line'] . ') in ' . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path));
             }
-            die();
         }
     }
 }
