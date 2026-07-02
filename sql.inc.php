@@ -189,10 +189,10 @@ class SQLHandler
             $msg .= "\t<strong>at</strong> ";
             if (!empty($line['class'])) {
                 $msg .= $line['class'];
-                $msg .= $line['type'];
+                $msg .= $line['type'] ?? '';
             }
-            $msg .= $line['function'] . "()";
-            $path = $line['file'] . " (<strong>line</strong> " . $line['line'] . ")<br/>";
+            $msg .= ($line['function'] ?? '') . "()";
+            $path = ($line['file'] ?? '') . " (<strong>line</strong> " . ($line['line'] ?? '') . ")<br/>";
             $msg .= " <strong>in</strong> " . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path);
         }
         $msg .= "</pre></span>";
@@ -201,9 +201,9 @@ class SQLHandler
         } else {
             error_log("MYSQL: " . $e->getMessage());
             foreach ($e->getTrace() as $line) {
-                $add = !empty($line['class']) ? $line['class'] . $line['type'] : '';
-                $path = $line['file'] . " (line " . $line['line'] . ")";
-                error_log("MYSQL: " . $add . $line['function'] . '() ' . $line['file'] . ' (line ' . $line['line'] . ') in ' . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path));
+                $add = !empty($line['class']) ? $line['class'] . ($line['type'] ?? '') : '';
+                $path = ($line['file'] ?? '') . " (line " . ($line['line'] ?? '') . ")";
+                error_log("MYSQL: " . $add . ($line['function'] ?? '') . '() ' . ($line['file'] ?? '') . ' (line ' . ($line['line'] ?? '') . ') in ' . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path));
             }
         }
     }

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * $KYAULabs: aurora.inc.php,v 1.1.4 2026/06/29 13:21:45 -0700 kyau Exp $
+ * $KYAULabs: aurora.inc.php,v 1.1.5 2026/07/01 12:37:24 -0700 kyau Exp $
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -153,12 +153,16 @@ class Aurora
      * Magic getter for accessing private properties.
      *
      * @param string $name The name of the property.
-     * @return string|null The value of the property or null if not found.
+     * @return mixed The value of the property or null if not found.
      */
-    public function __get(string $name): ?string
+    public function __get(string $name): mixed
     {
         if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'mjs', 'status', 'html'))) {
-            if (!empty($this->$name)) {
+            if (is_array($this->$name)) {
+                if (!empty($this->$name)) {
+                    return $this->$name;
+                }
+            } else {
                 return $this->$name;
             }
         } else {

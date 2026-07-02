@@ -1,5 +1,4 @@
 <img src=".github/media/aurora-logo-dark.svg" alt="COSMOS" width="256"><br/>
-<!--<img src=".github/media/aurora.ans.png" alt="Repository Logo" />-->
 
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-2.1-4baaaa.svg?logo=open-source-initiative&logoColor=4baaaa)](CODE_OF_CONDUCT.md)
 [![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-fe5196?style=flat&logo=conventionalcommits)](https://www.conventionalcommits.org/en/v1.0.0/)
@@ -97,7 +96,7 @@ Templates are plain HTML files stored in `aurora/html/`. The default template
 * `{% func() %}` — replaced with generated HTML from internal methods:
 
 | Tag | Output |
-|-----|--------|
+| --- | --- |
 | `{% css() %}` | `<link rel="stylesheet">` tags with SRI |
 | `{% preload() %}` | `<link rel="dns-prefetch">`, `<link rel="preconnect">`, and `<link rel="preload">` tags |
 
@@ -149,7 +148,7 @@ new KYAULabs\Aurora(
 Set properties on the `$site` object using assignment syntax:
 
 | Property | Type | Description |
-|----------|------|-------------|
+| -------- | ---- | ----------- |
 | `$site->title` | `string` | Page title (`<title>` and `og:title`) |
 | `$site->description` | `string` | Meta description and `og:description` |
 | `$site->dns` | `array` | Domains for DNS prefetch/preconnect tags |
@@ -165,7 +164,7 @@ Set properties on the `$site` object using assignment syntax:
 ### Methods
 
 | Method | Description |
-|--------|-------------|
+| ------ | ----------- |
 | `htmlHeader()` | Renders the template header |
 | `htmlFooter()` | Emits `<script>` tags and closes `</body></html>` |
 | `comment($rus, $script, $vim)` | Returns an HTML comment with version and performance stats |
@@ -214,7 +213,7 @@ $db->setDatabase("other_database");
 Set the error handling mode by modifying the protected `$err` property:
 
 | Constant | Behavior |
-|----------|----------|
+| -------- | -------- |
 | `SQLHandler::INTERNAL_HANDLING` | Display/log the error (default) |
 | `SQLHandler::THROW_EXCEPTION` | Re-throw `PDOException` for custom handling |
 | `SQLHandler::IGNORE_ERRORS` | Silently ignore errors |

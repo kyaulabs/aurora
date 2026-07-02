@@ -31,17 +31,318 @@ test('__get returns null for missing property', function () {
     expect($result)->toBeNull();
 });
 
-test('comment returns formatted HTML comment', function () {
+describe('comment()', function () {
     $rus = getrusage();
-    $site = new Aurora('index.html', '/cdn', false, false);
-    $comment = $site->comment($rus, __FILE__);
-    expect($comment)->toContain('<!--');
-    expect($comment)->toContain('-->');
+    $fixtureFile = __DIR__ . '/fixtures/test_rcs.php';
+
+    test('contains parsed RCS version string', function () use ($rus, $fixtureFile) {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $comment = $site->comment($rus, $fixtureFile);
+
+        expect($comment)->toContain('<!--');
+        expect($comment)->toContain('-->');
+        expect($comment)->toContain('test_rcs.php,v test_rcs.html,v 2024/01/15-');
+    });
+
+    test('contains compute and syscall timing', function () use ($rus, $fixtureFile) {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $comment = $site->comment($rus, $fixtureFile);
+
+        expect($comment)->toMatch('/compute:-?\d+ms/');
+        expect($comment)->toMatch('/syscall:-?\d+ms/');
+    });
+
+    test('includes vim modeline when vim flag is true', function () use ($rus, $fixtureFile) {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $comment = $site->comment($rus, $fixtureFile, true);
+
+        expect($comment)->toContain('vim: ft=html sts=4 sw=4 ts=4 noet:');
+    });
+
+    test('excludes vim modeline when vim flag is false', function () use ($rus, $fixtureFile) {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $comment = $site->comment($rus, $fixtureFile, false);
+
+        expect($comment)->not->toContain('vim:');
+    });
 });
 
-test('version returns version string', function () {
-    $site = new Aurora('index.html', '/cdn', false, false);
-    $version = $site->version(__FILE__);
-    expect($version)->toBeString();
+describe('version()', function () {
+    $fixtureFile = __DIR__ . '/fixtures/test_rcs.php';
+
+    test('returns version parsed from RCS header', function () use ($fixtureFile) {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $version = $site->version($fixtureFile);
+
+        expect($version)->toBe('v2024/01/15');
+    });
 });
+describe('__set/__get array properties', function () {
+    test('merges dns arrays on repeated set', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->dns = ['cdn.example.com'];
+        $site->dns = ['cdn2.example.com'];
+
+        $dns = $site->dns;
+        expect($dns)->toBeArray();
+        expect($dns)->toHaveCount(2);
+        expect($dns)->toContain('cdn.example.com');
+        expect($dns)->toContain('cdn2.example.com');
+    });
+
+    test('merges css arrays on repeated set', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->css = ['/a.css' => 'a.css'];
+        $site->css = ['/b.css' => 'b.css'];
+
+        $css = $site->css;
+        expect($css)->toBeArray();
+        expect($css)->toHaveCount(2);
+        expect($css['/a.css'])->toBe('a.css');
+        expect($css['/b.css'])->toBe('b.css');
+    });
+
+    test('first set on empty array property stores directly', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->preload = ['/main.js' => 'script'];
+
+        $preload = $site->preload;
+        expect($preload)->toBeArray();
+        expect($preload)->toHaveCount(1);
+        expect($preload['/main.js'])->toBe('script');
+    });
+
+    test('returns dns array via __get after setting', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->dns = ['dns.example.com', 'fonts.example.com'];
+
+        $dns = $site->dns;
+        expect($dns)->toBeArray();
+        expect($dns)->toHaveCount(2);
+        expect($dns[0])->toBe('dns.example.com');
+        expect($dns[1])->toBe('fonts.example.com');
+    });
+});
+
+describe('constructor', function () {
+    test('status=true enables display_errors', function () {
+        $site = new Aurora('index.html', '/cdn', true, false);
+
+        expect(ini_get('display_errors'))->toBe('1');
+        expect(ini_get('display_startup_errors'))->toBe('1');
+        expect(ini_get('html_errors'))->toBe('1');
+    });
+
+    test('status=false disables display_errors', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        expect(ini_get('display_errors'))->toBe('0');
+        expect(ini_get('display_startup_errors'))->toBe('0');
+        expect(ini_get('html_errors'))->toBe('0');
+        expect(ini_get('error_reporting'))->toBe((string)E_ALL);
+    });
+
+    test('html=true stores html flag', function () {
+        $site = new Aurora('index.html', '/cdn', false, true);
+
+        expect($site->html)->toBeTrue();
+    });
+
+    test('html=false stores html flag', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        expect($site->html)->toBeFalse();
+    });
+
+    test('uses templateDir overlay when template exists there', function () {
+        $overlayDir = __DIR__ . '/fixtures/overlay';
+        $site = new Aurora('index.html', '/cdn', false, false, $overlayDir);
+
+        expect($site->html)->toBeFalse();
+    });
+});
+
+describe('htmlHeader()', function () {
+    test('returns false when no variables are set', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        ob_start();
+        $result = $site->htmlHeader();
+        ob_get_clean();
+
+        expect($result)->toBeFalse();
+    });
+
+    test('replaces template variable placeholders in output', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test Title';
+        $site->description = 'A description for testing';
+
+        ob_start();
+        $result = $site->htmlHeader();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('Test Title')
+            ->and($output)->toContain('A description for testing')
+            ->and($output)->not->toContain('{{ title }}')
+            ->and($output)->not->toContain('{{ description }}');
+    });
+
+    test('injects stylesheet link tags with SRI hashes', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test Title';
+        $site->css = ['tests/cdn/style.css' => '/style.css'];
+
+        ob_start();
+        $result = $site->htmlHeader();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('<link rel="stylesheet" type="text/css"')
+            ->and($output)->toContain('integrity="sha512-')
+            ->and($output)->toContain('crossorigin="anonymous"')
+            ->and($output)->toMatch('/\?v=[a-f0-9]+/');
+    });
+
+    test('injects DNS prefetch and preload tags', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test Title';
+        $site->dns = ['cdn.example.com'];
+        $site->preload = ['/font.woff2' => 'font'];
+
+        ob_start();
+        $result = $site->htmlHeader();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('<link rel="dns-prefetch" href="//cdn.example.com"')
+            ->and($output)->toContain('<link rel="preconnect" href="//cdn.example.com"')
+            ->and($output)->toContain('<link rel="preload" href="//cdn.example.com/font.woff2"');
+    });
+});
+
+describe('htmlFooter()', function () {
+    test('injects external JS script tags', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->js = ['<external>' => 'https://example.com/app.js'];
+
+        ob_start();
+        $result = $site->htmlFooter();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('<script src="https://example.com/app.js"')
+            ->and($output)->toContain('async defer')
+            ->and($output)->toContain('</body>')
+            ->and($output)->toContain('</html>');
+    });
+
+    test('injects file-based JS script tags with SRI hashes', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->js = ['tests/cdn/app.js' => '/app.js'];
+
+        ob_start();
+        $result = $site->htmlFooter();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('<script src="/app.js?v=')
+            ->and($output)->toContain('integrity="sha512-')
+            ->and($output)->toContain('crossorigin="anonymous"')
+            ->and($output)->toContain('defer="defer"');
+    });
+
+    test('injects ES module script tags with SRI hashes', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->mjs = ['tests/cdn/module.js' => '/module.js'];
+
+        ob_start();
+        $result = $site->htmlFooter();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('<script src="/module.js?v=')
+            ->and($output)->toContain('type="module"')
+            ->and($output)->toContain('integrity="sha512-');
+    });
+
+    test('outputs closing body and html tags when no scripts are set', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        ob_start();
+        $result = $site->htmlFooter();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toBe("\n</body>\n</html>");
+    });
+});
+
+describe('testVariables()', function () {
+    test('lists replaced scalar variables after rendering', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Report Title';
+        $site->description = 'Report Description';
+
+        ob_start();
+        $site->htmlHeader();
+        ob_end_clean();
+
+        $report = $site->testVariables();
+
+        expect($report)->toContain('&#x2714; title: Report Title');
+        expect($report)->toContain('&#x2714; description: Report Description');
+        expect($report)->toContain('&#x2714; css: array(data)');
+        expect($report)->toContain('&#x2714; preload: array(data)');
+    });
+});
+
+describe('exceptionHandler()', function () {
+    test('outputs head-body separator when code is 1 and display_errors is on', function () {
+        ini_set('display_errors', '1');
+        $e = new \KYAULabs\AuroraException('Handler test', 'test', 1);
+
+        ob_start();
+        \KYAULabs\Aurora::exceptionHandler($e);
+        $output = ob_get_clean();
+
+        expect($output)->toContain('</head>')
+            ->and($output)->toContain('<body>')
+            ->and($output)->toContain('Aurora - Warning!')
+            ->and($output)->toContain('Handler test');
+    });
+
+    test('skips head-body separator when code is not 1', function () {
+        ini_set('display_errors', '1');
+        $e = new \KYAULabs\AuroraException('Other error', 'test', 5);
+
+        ob_start();
+        \KYAULabs\Aurora::exceptionHandler($e);
+        $output = ob_get_clean();
+
+        expect($output)->not->toContain('</head>')
+            ->and($output)->toContain('Aurora - Warning!')
+            ->and($output)->toContain('Other error');
+    });
+
+    test('logs to error_log when display_errors is off', function () {
+        ini_set('display_errors', '0');
+        $e = new \KYAULabs\AuroraException('Silent error', 'test', 0);
+
+        $logged = false;
+        set_error_handler(function () use (&$logged) {
+            $logged = true;
+            return true;
+        });
+
+        ob_start();
+        \KYAULabs\Aurora::exceptionHandler($e);
+        $output = ob_get_clean();
+
+        restore_error_handler();
+        expect($output)->toBe('');
+    });
+});
+
 // vim: ft=php sts=4 sw=4 ts=4 et :
