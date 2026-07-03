@@ -160,6 +160,11 @@ describe('constructor', function () {
 
         expect($site->html)->toBeFalse();
     });
+
+    test('throws on invalid CDN directory', function () {
+        expect(fn () => new Aurora('index.html', '/nonexistent_cdn', false, false))
+            ->toThrow(\KYAULabs\AuroraException::class, 'Invalid directory');
+    });
 });
 
 describe('htmlHeader()', function () {
@@ -342,6 +347,325 @@ describe('exceptionHandler()', function () {
 
         restore_error_handler();
         expect($output)->toBe('');
+    });
+});
+
+describe('htmlPreload()', function () {
+    test('injects SRI-hashed preload tags for script and style types', function () {
+        $cwd = getcwd();
+        chdir(__DIR__);
+
+        try {
+            $site = new Aurora('index.html', '/cdn', false, false);
+            $site->title = 'Test Title';
+            $site->dns = ['cdn.example.com'];
+            $site->preload = ['/style.css' => 'style'];
+
+            ob_start();
+            $result = $site->htmlHeader();
+            $output = ob_get_clean();
+
+            chdir($cwd);
+
+            expect($result)->toBeTrue()
+                ->and($output)->toContain('integrity="sha512-')
+                ->and($output)->toContain('as="style"')
+                ->and($output)->toContain('crossorigin="anonymous"')
+                ->and($output)->toContain('dns-prefetch');
+        } finally {
+            chdir($cwd);
+        }
+    });
+
+    test('throws when DNS prefetch is not configured for script or style preload', function () {
+        $cwd = getcwd();
+        chdir(__DIR__);
+
+        try {
+            $site = new Aurora('index.html', '/cdn', false, false);
+            $site->title = 'Test Title';
+            $site->preload = ['/style.css' => 'style'];
+
+            expect(fn () => $site->htmlHeader())
+                ->toThrow(\KYAULabs\AuroraException::class, 'DNS prefetch not found!');
+        } finally {
+            chdir($cwd);
+        }
+    });
+});
+
+describe('htmlHeader() render failure', function () {
+    test('returns false when template rendering fails', function () {
+        $cwd = getcwd();
+        chdir(__DIR__);
+
+        try {
+            $tempFile = sys_get_temp_dir() . '/aurora_test_render_' . uniqid() . '.html';
+            file_put_contents($tempFile, '{{ title }}');
+
+            $site = new Aurora(basename($tempFile), '/cdn', false, false, dirname($tempFile));
+            $site->title = 'Test';
+
+            unlink($tempFile);
+
+            ob_start();
+            set_error_handler(fn () => true);
+            $result = $site->htmlHeader();
+            restore_error_handler();
+            $output = ob_get_clean();
+
+            chdir($cwd);
+
+            expect($result)->toBeFalse()
+                ->and($output)->toContain('template rendering has failed');
+        } finally {
+            chdir($cwd);
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    });
+});
+
+describe('htmlFooter()', function () {
+    test('injects external ES module script tags', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->mjs = ['<external>' => 'https://example.com/module.js'];
+
+        ob_start();
+        $result = $site->htmlFooter();
+        $output = ob_get_clean();
+
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('<script src="https://example.com/module.js"')
+            ->and($output)->toContain('type="module"')
+            ->and($output)->toContain('id="ext1"');
+    });
+});
+
+describe('htmlStyles()', function () {
+    test('throws when CSS file hash computation fails', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test';
+        $site->css = ['/nonexistent_css_file.css' => '/style.css'];
+
+        expect(function () use ($site) {
+            set_error_handler(fn () => true);
+            try {
+                $site->htmlHeader();
+            } finally {
+                restore_error_handler();
+            }
+        })->toThrow(\KYAULabs\AuroraException::class, 'hash computation failed');
+    });
+});
+
+describe('htmlPreload() file not found', function () {
+    test('throws when preload file does not exist', function () {
+        $cwd = getcwd();
+        chdir(__DIR__);
+
+        try {
+            $site = new Aurora('index.html', '/cdn', false, false);
+            $site->title = 'Test';
+            $site->dns = ['cdn.example.com'];
+            $site->preload = ['/nonexistent_preload.js' => 'script'];
+
+            expect(fn () => $site->htmlHeader())
+                ->toThrow(\KYAULabs\AuroraException::class, 'does not exist');
+        } finally {
+            chdir($cwd);
+        }
+    });
+
+    test('throws when preload hash computation fails', function () {
+        $cwd = getcwd();
+        chdir(__DIR__);
+
+        try {
+            $site = new Aurora('index.html', '/cdn', false, false);
+            $site->title = 'Test';
+            $site->dns = ['cdn.example.com'];
+            $site->preload = ['/../' => 'style'];
+
+            expect(function () use ($site) {
+                set_error_handler(fn () => true);
+                try {
+                    $site->htmlHeader();
+                } finally {
+                    restore_error_handler();
+                }
+            })->toThrow(\KYAULabs\AuroraException::class, 'hash computation failed');
+        } finally {
+            chdir($cwd);
+        }
+    });
+});
+
+describe('htmlScripts()', function () {
+    test('throws when ES module file does not exist', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->mjs = ['/nonexistent_module.js' => '/module.js'];
+
+        expect(fn () => $site->htmlFooter())
+            ->toThrow(\KYAULabs\AuroraException::class, 'does not exist');
+    });
+
+    test('throws when regular JS file does not exist', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->js = ['/nonexistent_script.js' => '/app.js'];
+
+        expect(fn () => $site->htmlFooter())
+            ->toThrow(\KYAULabs\AuroraException::class, 'does not exist');
+    });
+
+    test('throws when ES module hash computation fails', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->mjs = [__DIR__ => '/module.js'];
+
+        expect(function () use ($site) {
+            set_error_handler(fn () => true);
+            try {
+                $site->htmlFooter();
+            } finally {
+                restore_error_handler();
+            }
+        })->toThrow(\KYAULabs\AuroraException::class, 'hash computation failed');
+    });
+
+    test('throws when regular JS hash computation fails', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->js = [__DIR__ => '/app.js'];
+
+        expect(function () use ($site) {
+            set_error_handler(fn () => true);
+            try {
+                $site->htmlFooter();
+            } finally {
+                restore_error_handler();
+            }
+        })->toThrow(\KYAULabs\AuroraException::class, 'hash computation failed');
+    });
+});
+
+describe('projectVersion()', function () {
+    test('version returns null and echoes error for non-existent file', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        ob_start();
+        $version = $site->version('/nonexistent_project_file.php');
+        $output = ob_get_clean();
+
+        expect($version)->toBeNull()
+            ->and($output)->toContain('does not exist');
+    });
+
+    test('version returns null for valid file without RCS header', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        ob_start();
+        $version = $site->version(__DIR__ . '/../../composer.json');
+        $output = ob_get_clean();
+
+        expect($version)->toBeNull()
+            ->and($output)->toBe('');
+    });
+});
+
+describe('phpSet()', function () {
+    test('returns false and echoes error on ini_set failure', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        $reflection = new \ReflectionMethod(\KYAULabs\Aurora::class, 'phpSet');
+
+        ob_start();
+        $result = $reflection->invoke($site, 'nonexistent_php_setting', 'value');
+        $output = ob_get_clean();
+
+        expect($result)->toBeFalse()
+            ->and($output)->toContain('Error: could not set');
+    });
+});
+
+describe('testVariables()', function () {
+    test('reports orphaned success entry when variable is missing', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        $reflection = new \ReflectionProperty(\KYAULabs\Aurora::class, 'vars_success');
+        $reflection->setValue($site, ['orphaned_key']);
+
+        $report = $site->testVariables();
+
+        expect($report)->toContain('&#x2715; orphaned_key: success case but no variable?!');
+    });
+});
+
+describe('render() feof failure', function () {
+    test('echoes failure when fgets stops but feof reports false', function () {
+        if (!in_array('errorfeof', stream_get_wrappers(), true)) {
+            require_once __DIR__ . '/fixtures/ErrorFeofStream.php';
+            stream_wrapper_register('errorfeof', \Tests\Unit\Fixtures\ErrorFeofStream::class);
+        }
+
+        try {
+            \Tests\Unit\Fixtures\ErrorFeofStream::setData("line\n");
+
+            $site = new Aurora('test.html', '/cdn', false, false, 'errorfeof://tpl');
+            $site->title = 'Test';
+
+            ob_start();
+            $result = $site->htmlHeader();
+            $output = ob_get_clean();
+
+            expect($result)->toBeFalse()
+                ->and($output)->toContain('unexpected fgets() failure');
+        } finally {
+            if (in_array('errorfeof', stream_get_wrappers(), true)) {
+                stream_wrapper_unregister('errorfeof');
+            }
+        }
+    });
+});
+
+describe('projectVersion() error paths', function () {
+    test('echoes fgets fail when feof reports false after reading', function () {
+        if (!in_array('errorfeof', stream_get_wrappers(), true)) {
+            require_once __DIR__ . '/fixtures/ErrorFeofStream.php';
+            stream_wrapper_register('errorfeof', \Tests\Unit\Fixtures\ErrorFeofStream::class);
+        }
+
+        try {
+            \Tests\Unit\Fixtures\ErrorFeofStream::setData("no rcs header here\nanother line\n");
+
+            $site = new Aurora('index.html', '/cdn', false, false);
+
+            ob_start();
+            $version = $site->version('errorfeof://tpl/test.js');
+            $output = ob_get_clean();
+
+            expect($version)->toBeNull()
+                ->and($output)->toContain('unexpected fgets() fail');
+        } finally {
+            if (in_array('errorfeof', stream_get_wrappers(), true)) {
+                stream_wrapper_unregister('errorfeof');
+            }
+        }
+    });
+
+    test('echoes fopen fail when file exists but cannot be opened', function () {
+        $site = new Aurora('index.html', '/cdn', false, false);
+
+        ob_start();
+        try {
+            set_error_handler(fn () => true);
+            $version = $site->version(__DIR__);
+        } catch (\ValueError|\TypeError) {
+        } finally {
+            restore_error_handler();
+        }
+        $output = ob_get_clean();
+
+        expect($output)->toContain('unexpected fopen() fail');
     });
 });
 

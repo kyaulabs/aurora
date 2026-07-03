@@ -9,10 +9,20 @@ use KYAULabs\SQLHandler;
 
 require_once __DIR__ . '/../../sql.inc.php';
 
-define('SQL_USER', 'test_user');
-define('SQL_PASSWD', 'test_pass');
-define('SQL_HOST', '127.0.0.1');
-define('SQL_PORT', 3306);
+beforeEach(function () {
+    if (!defined('SQL_USER')) {
+        define('SQL_USER', 'test_user');
+    }
+    if (!defined('SQL_PASSWD')) {
+        define('SQL_PASSWD', 'test_pass');
+    }
+    if (!defined('SQL_HOST')) {
+        define('SQL_HOST', '127.0.0.1');
+    }
+    if (!defined('SQL_PORT')) {
+        define('SQL_PORT', 3306);
+    }
+});
 
 describe('SQLHandler constructor', function () {
     test('throws when db parameter is null', function () {
@@ -99,6 +109,88 @@ describe('SQLHandler setDatabase with PDO error', function () {
 
         expect($result)->toBeFalse()
             ->and($output)->toContain('Table not found');
+    });
+});
+
+describe('SQLHandler query with mock PDO', function () {
+    test('returns PDOStatement on successful query', function () {
+        $handler = new SQLHandler('test_db');
+
+        $mockStatement = $this->createMock(\PDOStatement::class);
+        $mockStatement->method('execute')
+            ->willReturn(true);
+
+        $mockPdo = $this->createMock(\PDO::class);
+        $mockPdo->method('prepare')
+            ->willReturn($mockStatement);
+
+        $handler->pdo = $mockPdo;
+
+        $result = $handler->query('SELECT * FROM test');
+
+        expect($result)->toBeInstanceOf(\PDOStatement::class);
+    });
+});
+
+describe('SQLHandler setDatabase with mock PDO success', function () {
+    test('returns true when PDO exec succeeds', function () {
+        $handler = new SQLHandler('test_db');
+
+        $mockPdo = $this->createMock(\PDO::class);
+        $mockPdo->method('exec')
+            ->willReturn(1);
+
+        $handler->pdo = $mockPdo;
+
+        expect($handler->setDatabase('new_db'))->toBeTrue();
+    });
+});
+
+describe('SQLHandler procException with IGNORE_ERRORS', function () {
+    test('silently ignores PDOException when err is IGNORE_ERRORS', function () {
+        $handler = new class ('test_db') extends SQLHandler {
+            protected $err = SQLHandler::IGNORE_ERRORS;
+        };
+
+        expect($handler->pdo)->toBeNull();
+    });
+});
+
+describe('SQLHandler query PDOException catch', function () {
+    test('returns false and handles exception when prepare throws PDOException', function () {
+        $handler = new SQLHandler('test_db');
+
+        $mockPdo = $this->createMock(\PDO::class);
+        $mockPdo->method('prepare')
+            ->willThrowException(new \PDOException('Syntax error', 1064));
+
+        $handler->pdo = $mockPdo;
+
+        ini_set('display_errors', '1');
+
+        ob_start();
+        $result = $handler->query('INVALID SQL');
+        $output = ob_get_clean();
+
+        expect($result)->toBeFalse()
+            ->and($output)->toContain('Syntax error');
+    });
+});
+
+describe('SQLHandler settings.inc.php inclusion', function () {
+    test('includes settings.inc.php when it exists', function () {
+        $settingsPath = __DIR__ . '/../../settings.inc.php';
+        file_put_contents($settingsPath, '<?php ');
+
+        try {
+            ob_start();
+            $handler = new SQLHandler('test_db');
+            ob_end_clean();
+
+            expect($handler->pdo)->toBeNull();
+        } finally {
+            unlink($settingsPath);
+        }
     });
 });
 
