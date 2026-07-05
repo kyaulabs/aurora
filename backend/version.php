@@ -1,6 +1,6 @@
 <?php
 
-# $KYAULabs: version.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+# $KYAULabs: version.php kyau@nova 2026/07/04 -0700 Exp $
 
 
 declare(strict_types=1);

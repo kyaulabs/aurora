@@ -1,6 +1,6 @@
 <?php
 
-# $KYAULabs: sql.inc.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+# $KYAULabs: sql.inc.php kyau@nova 2026/07/04 -0700 Exp $
 
 
 declare(strict_types=1);

@@ -1,6 +1,6 @@
 <?php
 
-# $KYAULabs: AuroraTest.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+# $KYAULabs: AuroraTest.php kyau@nova 2026/07/04 -0700 Exp $
 
 
 declare(strict_types=1);
@@ -30,6 +30,23 @@ test('__get returns null for missing property', function () {
     $result = $site->nonexistent;
     restore_error_handler();
     expect($result)->toBeNull();
+});
+
+test('__get returns empty array for array properties on fresh instance', function () {
+    $site = new Aurora('index.html', '/cdn', false, false);
+    expect($site->css)->toBe([]);
+    expect($site->dns)->toBe([]);
+    expect($site->js)->toBe([]);
+    expect($site->mjs)->toBe([]);
+    expect($site->preload)->toBe([]);
+});
+
+test('__get returns array properties via __get after assignment', function () {
+    $site = new Aurora('index.html', '/cdn', false, false);
+    $site->css = ['/a.css' => 'a.css'];
+    $site->js = ['/app.js' => 'app.js'];
+    expect($site->css)->toBe(['/a.css' => 'a.css']);
+    expect($site->js)->toBe(['/app.js' => 'app.js']);
 });
 
 describe('comment()', function () {

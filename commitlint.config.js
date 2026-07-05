@@ -1,4 +1,4 @@
-// $KYAULabs: commitlint.config.js Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+// $KYAULabs: commitlint.config.js kyau@nova 2026/07/04 -0700 Exp $
 
 module.exports = {
 	extends: ['@commitlint/config-conventional'],

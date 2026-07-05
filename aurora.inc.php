@@ -1,6 +1,6 @@
 <?php
 
-# $KYAULabs: aurora.inc.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+# $KYAULabs: aurora.inc.php kyau@nova 2026/07/04 -0700 Exp $
 
 
 declare(strict_types=1);
@@ -133,18 +133,11 @@ class Aurora
      */
     public function __get(string $name): mixed
     {
-        if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'mjs', 'status', 'html'))) {
-            if (is_array($this->$name)) {
-                if (!empty($this->$name)) {
-                    return $this->$name;
-                }
-            } else {
-                return $this->$name;
-            }
-        } else {
-            if (array_key_exists($name, $this->vars)) {
-                return $this->vars[$name];
-            }
+        if (in_array($name, ['aurora_cdn', 'dns', 'preload', 'css', 'js', 'mjs', 'status', 'html'])) {
+            return $this->$name;
+        }
+        if (array_key_exists($name, $this->vars)) {
+            return $this->vars[$name];
         }
         trigger_error("Error: unable to find variable '{$name}'", E_USER_WARNING);
         return null;

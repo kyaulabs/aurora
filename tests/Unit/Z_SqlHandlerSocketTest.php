@@ -1,6 +1,6 @@
 <?php
 
-# $KYAULabs: Z_SqlHandlerSocketTest.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+# $KYAULabs: Z_SqlHandlerSocketTest.php kyau@nova 2026/07/04 -0700 Exp $
 
 
 declare(strict_types=1);
