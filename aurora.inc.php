@@ -20,6 +20,8 @@ class Aurora
 
     /** @var string $aurora_cdn The CDN directory path */
     private $aurora_cdn = "";
+    /** @var string $cdnBasePath The resolved CDN filesystem path */
+    private $cdnBasePath = "";
     /** @var string|null $templateDir Custom template directory (overlay) */
     private $templateDir = null;
     /** @var string $aurora_template The template file name */
@@ -90,6 +92,7 @@ class Aurora
             throw new AuroraException("Invalid directory: " . $orig_dir . '/' . $cdn, 'cdn', 1);
         } else {
             $this->aurora_cdn = $cdn;
+            $this->cdnBasePath = $orig_dir . '/..' . $cdn;
         }
 
         // Enable unicode and set default timezone to UTC.
@@ -211,7 +214,7 @@ class Aurora
             }
             foreach ($this->preload as $url => $type) {
                 if (in_array($type, array("script", "style"))) {
-                    $path = '..' . $this->aurora_cdn . $url;
+                    $path = $this->cdnBasePath . $url;
                     if (!file_exists($path)) {
                         throw new AuroraException("{$path} does not exist.", 'preload', 1);
                     }

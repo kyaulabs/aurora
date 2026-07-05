@@ -207,7 +207,7 @@ describe('htmlHeader()', function () {
     test('injects stylesheet link tags with SRI hashes', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
         $site->title = 'Test Title';
-        $site->css = ['tests/cdn/style.css' => '/style.css'];
+        $site->css = [__DIR__ . '/../cdn/style.css' => '/style.css'];
 
         ob_start();
         $result = $site->htmlHeader();
@@ -255,7 +255,7 @@ describe('htmlFooter()', function () {
 
     test('injects file-based JS script tags with SRI hashes', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
-        $site->js = ['tests/cdn/app.js' => '/app.js'];
+        $site->js = [__DIR__ . '/../cdn/app.js' => '/app.js'];
 
         ob_start();
         $result = $site->htmlFooter();
@@ -270,7 +270,7 @@ describe('htmlFooter()', function () {
 
     test('injects ES module script tags with SRI hashes', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
-        $site->mjs = ['tests/cdn/module.js' => '/module.js'];
+        $site->mjs = [__DIR__ . '/../cdn/module.js' => '/module.js'];
 
         ob_start();
         $result = $site->htmlFooter();
@@ -362,78 +362,50 @@ describe('exceptionHandler()', function () {
 
 describe('htmlPreload()', function () {
     test('injects SRI-hashed preload tags for script and style types', function () {
-        $cwd = getcwd();
-        chdir(__DIR__);
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test Title';
+        $site->dns = ['cdn.example.com'];
+        $site->preload = ['/style.css' => 'style'];
 
-        try {
-            $site = new Aurora('index.html', '/cdn', false, false);
-            $site->title = 'Test Title';
-            $site->dns = ['cdn.example.com'];
-            $site->preload = ['/style.css' => 'style'];
+        ob_start();
+        $result = $site->htmlHeader();
+        $output = ob_get_clean();
 
-            ob_start();
-            $result = $site->htmlHeader();
-            $output = ob_get_clean();
-
-            chdir($cwd);
-
-            expect($result)->toBeTrue()
-                ->and($output)->toContain('integrity="sha512-')
-                ->and($output)->toContain('as="style"')
-                ->and($output)->toContain('crossorigin="anonymous"')
-                ->and($output)->toContain('dns-prefetch');
-        } finally {
-            chdir($cwd);
-        }
+        expect($result)->toBeTrue()
+            ->and($output)->toContain('integrity="sha512-')
+            ->and($output)->toContain('as="style"')
+            ->and($output)->toContain('crossorigin="anonymous"')
+            ->and($output)->toContain('dns-prefetch');
     });
 
     test('throws when DNS prefetch is not configured for script or style preload', function () {
-        $cwd = getcwd();
-        chdir(__DIR__);
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test Title';
+        $site->preload = ['/style.css' => 'style'];
 
-        try {
-            $site = new Aurora('index.html', '/cdn', false, false);
-            $site->title = 'Test Title';
-            $site->preload = ['/style.css' => 'style'];
-
-            expect(fn () => $site->htmlHeader())
-                ->toThrow(\KYAULabs\AuroraException::class, 'DNS prefetch not found!');
-        } finally {
-            chdir($cwd);
-        }
+        expect(fn () => $site->htmlHeader())
+            ->toThrow(\KYAULabs\AuroraException::class, 'DNS prefetch not found!');
     });
 });
 
 describe('htmlHeader() render failure', function () {
     test('returns false when template rendering fails', function () {
-        $cwd = getcwd();
-        chdir(__DIR__);
+        $tempFile = sys_get_temp_dir() . '/aurora_test_render_' . uniqid() . '.html';
+        file_put_contents($tempFile, '{{ title }}');
 
-        try {
-            $tempFile = sys_get_temp_dir() . '/aurora_test_render_' . uniqid() . '.html';
-            file_put_contents($tempFile, '{{ title }}');
+        $site = new Aurora(basename($tempFile), '/cdn', false, false, dirname($tempFile));
+        $site->title = 'Test';
 
-            $site = new Aurora(basename($tempFile), '/cdn', false, false, dirname($tempFile));
-            $site->title = 'Test';
+        unlink($tempFile);
 
-            unlink($tempFile);
+        ob_start();
+        set_error_handler(fn () => true);
+        $result = $site->htmlHeader();
+        restore_error_handler();
+        $output = ob_get_clean();
 
-            ob_start();
-            set_error_handler(fn () => true);
-            $result = $site->htmlHeader();
-            restore_error_handler();
-            $output = ob_get_clean();
-
-            chdir($cwd);
-
-            expect($result)->toBeFalse()
-                ->and($output)->toContain('template rendering has failed');
-        } finally {
-            chdir($cwd);
-            if (file_exists($tempFile)) {
-                unlink($tempFile);
-            }
-        }
+        expect($result)->toBeFalse()
+            ->and($output)->toContain('template rendering has failed');
     });
 });
 
@@ -472,43 +444,29 @@ describe('htmlStyles()', function () {
 
 describe('htmlPreload() file not found', function () {
     test('throws when preload file does not exist', function () {
-        $cwd = getcwd();
-        chdir(__DIR__);
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test';
+        $site->dns = ['cdn.example.com'];
+        $site->preload = ['/nonexistent_preload.js' => 'script'];
 
-        try {
-            $site = new Aurora('index.html', '/cdn', false, false);
-            $site->title = 'Test';
-            $site->dns = ['cdn.example.com'];
-            $site->preload = ['/nonexistent_preload.js' => 'script'];
-
-            expect(fn () => $site->htmlHeader())
-                ->toThrow(\KYAULabs\AuroraException::class, 'does not exist');
-        } finally {
-            chdir($cwd);
-        }
+        expect(fn () => $site->htmlHeader())
+            ->toThrow(\KYAULabs\AuroraException::class, 'does not exist');
     });
 
     test('throws when preload hash computation fails', function () {
-        $cwd = getcwd();
-        chdir(__DIR__);
+        $site = new Aurora('index.html', '/cdn', false, false);
+        $site->title = 'Test';
+        $site->dns = ['cdn.example.com'];
+        $site->preload = ['/../' => 'style'];
 
-        try {
-            $site = new Aurora('index.html', '/cdn', false, false);
-            $site->title = 'Test';
-            $site->dns = ['cdn.example.com'];
-            $site->preload = ['/../' => 'style'];
-
-            expect(function () use ($site) {
-                set_error_handler(fn () => true);
-                try {
-                    $site->htmlHeader();
-                } finally {
-                    restore_error_handler();
-                }
-            })->toThrow(\KYAULabs\AuroraException::class, 'hash computation failed');
-        } finally {
-            chdir($cwd);
-        }
+        expect(function () use ($site) {
+            set_error_handler(fn () => true);
+            try {
+                $site->htmlHeader();
+            } finally {
+                restore_error_handler();
+            }
+        })->toThrow(\KYAULabs\AuroraException::class, 'hash computation failed');
     });
 });
 
