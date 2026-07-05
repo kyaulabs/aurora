@@ -9,6 +9,10 @@ use KYAULabs\SQLHandler;
 
 require_once __DIR__ . '/../../sql.inc.php';
 
+/**
+ * @runInSeparateProcess
+ * @preserveGlobalState disabled
+ */
 test('throws when SQL_USER is not defined', function () {
     expect(fn () => new SQLHandler('test_db'))
         ->toThrow(\Exception::class, 'No settings.inc.php exists.');
