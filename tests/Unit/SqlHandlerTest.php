@@ -70,6 +70,19 @@ describe('SQLHandler handleException', function () {
             ->and($output)->toContain('Test DB Error');
     });
 
+    test('escapes HTML special characters in error output', function () {
+        $e = new \PDOException('<script>alert("XSS")</script>', 1045);
+
+        ini_set('display_errors', '1');
+
+        ob_start();
+        SQLHandler::handleException($e);
+        $output = ob_get_clean();
+
+        expect($output)->toContain('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;')
+            ->and($output)->not->toContain('<script>alert("XSS")</script>');
+    });
+
     test('logs to error_log when display_errors is off', function () {
         $e = new \PDOException('Silent DB Error', 1045);
 

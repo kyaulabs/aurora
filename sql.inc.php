@@ -184,15 +184,18 @@ class SQLHandler
     {
         $trace = $e->getTrace();
         $msg = "<span class=\"error\"><strong>An error has occurred: </strong><br/>\n<pre>";
-        $msg .= $e->getMessage() . "<br/>\n";
+        $msg .= htmlspecialchars($e->getMessage()) . "<br/>\n";
         foreach ($trace as $line) {
             $msg .= "\t<strong>at</strong> ";
             if (!empty($line['class'])) {
-                $msg .= $line['class'];
-                $msg .= $line['type'] ?? '';
+                $msg .= htmlspecialchars($line['class']);
+                $msg .= htmlspecialchars($line['type'] ?? '');
             }
-            $msg .= ($line['function'] ?? '') . "()";
-            $path = ($line['file'] ?? '') . " (<strong>line</strong> " . ($line['line'] ?? '') . ")<br/>";
+            $msg .= htmlspecialchars($line['function'] ?? '') . "()";
+            $path = htmlspecialchars($line['file'] ?? '')
+                . " (<strong>line</strong> "
+                . htmlspecialchars((string)($line['line'] ?? ''))
+                . ")<br/>";
             $msg .= " <strong>in</strong> " . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path);
         }
         $msg .= "</pre></span>";
