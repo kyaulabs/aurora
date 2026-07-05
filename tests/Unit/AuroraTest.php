@@ -656,16 +656,16 @@ describe('projectVersion() error paths', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
 
         ob_start();
+        set_error_handler(fn () => true);
         try {
-            set_error_handler(fn () => true);
             $version = $site->version(__DIR__);
-        } catch (\ValueError|\TypeError) {
         } finally {
             restore_error_handler();
         }
         $output = ob_get_clean();
 
-        expect($output)->toContain('unexpected fopen() fail');
+        expect($version)->toBeNull()
+            ->and($output)->toContain('unexpected fopen() fail');
     });
 });
 

@@ -440,10 +440,10 @@ class Aurora
                 if (!feof($fd)) {
                     echo "Error: unexpected fgets() fail\n";
                 }
+                fclose($fd);
             } else {
                 echo "Error: unexpected fopen() fail\n";
             }
-            fclose($fd);
         } else {
             printf("Error: file '%s' does not exist\n", $project_file);
         }
