@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: Z_SqlHandlerSocketTest.php,v 1.0.0 2026/07/02 00:00:00 -0700 kyau Exp $
+# $KYAULabs: Z_SqlHandlerSocketTest.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -23,5 +24,7 @@ test('uses unix socket DSN when SQL_SOCKET is defined', function () {
 
     expect($handler->pdo)->toBeNull();
 });
+
+// vim: ft=php sts=4 sw=4 ts=4 et :
 
 // vim: ft=php sts=4 sw=4 ts=4 et :

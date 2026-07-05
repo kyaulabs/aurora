@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# $KYAULabs: pre-commit kyau@nova 2026/07/04 -0700 Exp $
-
 set -euo pipefail
 
 # ── PHP syntax check (staged files only) ─────────────────────────────────────

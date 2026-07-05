@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: AuroraTest.php,v 1.0.0 2026/06/27 00:00:00 -0700 kyau Exp $
+# $KYAULabs: AuroraTest.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -33,48 +34,40 @@ test('__get returns null for missing property', function () {
 
 describe('comment()', function () {
     $rus = getrusage();
-    $fixtureFile = __DIR__ . '/fixtures/test_rcs.php';
+    $dummyScript = __FILE__;
 
-    test('contains parsed RCS version string', function () use ($rus, $fixtureFile) {
+    test('contains SemVer version and timing', function () use ($rus, $dummyScript) {
         $site = new Aurora('index.html', '/cdn', false, false);
-        $comment = $site->comment($rus, $fixtureFile);
+        $comment = $site->comment($rus, $dummyScript);
 
         expect($comment)->toContain('<!--');
         expect($comment)->toContain('-->');
-        expect($comment)->toContain('test_rcs.php,v test_rcs.html,v 2024/01/15-');
-    });
-
-    test('contains compute and syscall timing', function () use ($rus, $fixtureFile) {
-        $site = new Aurora('index.html', '/cdn', false, false);
-        $comment = $site->comment($rus, $fixtureFile);
-
+        expect($comment)->toMatch('/Aurora v\d+\.\d+\.\d+/');
         expect($comment)->toMatch('/compute:-?\d+ms/');
         expect($comment)->toMatch('/syscall:-?\d+ms/');
     });
 
-    test('includes vim modeline when vim flag is true', function () use ($rus, $fixtureFile) {
+    test('includes vim modeline when vim flag is true', function () use ($rus, $dummyScript) {
         $site = new Aurora('index.html', '/cdn', false, false);
-        $comment = $site->comment($rus, $fixtureFile, true);
+        $comment = $site->comment($rus, $dummyScript, true);
 
         expect($comment)->toContain('vim: ft=html sts=4 sw=4 ts=4 noet:');
     });
 
-    test('excludes vim modeline when vim flag is false', function () use ($rus, $fixtureFile) {
+    test('excludes vim modeline when vim flag is false', function () use ($rus, $dummyScript) {
         $site = new Aurora('index.html', '/cdn', false, false);
-        $comment = $site->comment($rus, $fixtureFile, false);
+        $comment = $site->comment($rus, $dummyScript, false);
 
         expect($comment)->not->toContain('vim:');
     });
 });
 
 describe('version()', function () {
-    $fixtureFile = __DIR__ . '/fixtures/test_rcs.php';
-
-    test('returns version parsed from RCS header', function () use ($fixtureFile) {
+    test('returns SemVer version from version.inc.php', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
-        $version = $site->version($fixtureFile);
+        $version = $site->version();
 
-        expect($version)->toBe('v2024/01/15');
+        expect($version)->toMatch('/^v\d+\.\d+\.\d+/');
     });
 });
 describe('__set/__get array properties', function () {
@@ -549,26 +542,20 @@ describe('htmlScripts()', function () {
 });
 
 describe('projectVersion()', function () {
-    test('version returns null and echoes error for non-existent file', function () {
+    test('version returns SemVer string when version file exists', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
+        $version = $site->version();
 
-        ob_start();
-        $version = $site->version('/nonexistent_project_file.php');
-        $output = ob_get_clean();
-
-        expect($version)->toBeNull()
-            ->and($output)->toContain('does not exist');
+        expect($version)->not->toBeNull();
+        expect($version)->toMatch('/^v\d+\.\d+\.\d+/');
     });
 
-    test('version returns null for valid file without RCS header', function () {
+    test('version is stable across repeated calls', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
+        $first = $site->version();
+        $second = $site->version();
 
-        ob_start();
-        $version = $site->version(__DIR__ . '/../../composer.json');
-        $output = ob_get_clean();
-
-        expect($version)->toBeNull()
-            ->and($output)->toBe('');
+        expect($first)->toBe($second);
     });
 });
 
@@ -627,46 +614,16 @@ describe('render() feof failure', function () {
     });
 });
 
-describe('projectVersion() error paths', function () {
-    test('echoes fgets fail when feof reports false after reading', function () {
-        if (!in_array('errorfeof', stream_get_wrappers(), true)) {
-            require_once __DIR__ . '/fixtures/ErrorFeofStream.php';
-            stream_wrapper_register('errorfeof', \Tests\Unit\Fixtures\ErrorFeofStream::class);
-        }
-
-        try {
-            \Tests\Unit\Fixtures\ErrorFeofStream::setData("no rcs header here\nanother line\n");
-
-            $site = new Aurora('index.html', '/cdn', false, false);
-
-            ob_start();
-            $version = $site->version('errorfeof://tpl/test.js');
-            $output = ob_get_clean();
-
-            expect($version)->toBeNull()
-                ->and($output)->toContain('unexpected fgets() fail');
-        } finally {
-            if (in_array('errorfeof', stream_get_wrappers(), true)) {
-                stream_wrapper_unregister('errorfeof');
-            }
-        }
-    });
-
-    test('echoes fopen fail when file exists but cannot be opened', function () {
+describe('version() edge cases', function () {
+    test('version ignores script parameter for backward compatibility', function () {
         $site = new Aurora('index.html', '/cdn', false, false);
+        $version = $site->version('/nonexistent/file.php');
 
-        ob_start();
-        set_error_handler(fn () => true);
-        try {
-            $version = $site->version(__DIR__);
-        } finally {
-            restore_error_handler();
-        }
-        $output = ob_get_clean();
-
-        expect($version)->toBeNull()
-            ->and($output)->toContain('unexpected fopen() fail');
+        expect($version)->not->toBeNull();
+        expect($version)->toMatch('/^v\d+\.\d+\.\d+/');
     });
 });
+
+// vim: ft=php sts=4 sw=4 ts=4 et :
 
 // vim: ft=php sts=4 sw=4 ts=4 et :

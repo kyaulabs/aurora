@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# $KYAULabs: pre-push,v 1.0.0 2026/07/04 12:00:00 -0700 kyau Exp $
-
 set -euo pipefail
 
 YELLOW=$'\033[1;33m'

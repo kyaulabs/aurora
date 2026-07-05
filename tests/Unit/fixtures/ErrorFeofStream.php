@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: ErrorFeofStream.php,v 1.0.0 2026/07/02 00:00:00 -0700 kyau Exp $
+# $KYAULabs: ErrorFeofStream.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -108,5 +109,7 @@ final class ErrorFeofStream
         return false;
     }
 }
+
+// vim: ft=php sts=4 sw=4 ts=4 et :
 
 // vim: ft=php sts=4 sw=4 ts=4 et :

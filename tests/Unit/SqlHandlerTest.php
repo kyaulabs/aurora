@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: SqlHandlerTest.php,v 1.0.0 2026/07/01 00:00:00 -0700 kyau Exp $
+# $KYAULabs: SqlHandlerTest.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -189,5 +190,7 @@ describe('SQLHandler query PDOException catch', function () {
             ->and($output)->toContain('Syntax error');
     });
 });
+
+// vim: ft=php sts=4 sw=4 ts=4 et :
 
 // vim: ft=php sts=4 sw=4 ts=4 et :

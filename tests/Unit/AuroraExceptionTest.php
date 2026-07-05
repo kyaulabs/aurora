@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: AuroraExceptionTest.php,v 1.0.0 2026/06/27 00:00:00 -0700 kyau Exp $
+# $KYAULabs: AuroraExceptionTest.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -21,4 +22,6 @@ test('exception toString contains alert markup', function () {
     expect($str)->toContain('Database error');
     expect($str)->toContain('sql');
 });
+// vim: ft=php sts=4 sw=4 ts=4 et :
+
 // vim: ft=php sts=4 sw=4 ts=4 et :

@@ -1,9 +1,12 @@
 <?php
 
+# $KYAULabs: sql.inc.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
+
 declare(strict_types=1);
 
 /**
- * $KYAULabs: sql.inc.php,v 1.1.0 2026/06/29 13:23:36 -0700 kyau Exp $
+
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -223,3 +226,5 @@ class SQLHandler
 /**
  * vim: ft=php sts=4 sw=4 ts=4 et:
  */
+
+// vim: ft=php sts=4 sw=4 ts=4 et :

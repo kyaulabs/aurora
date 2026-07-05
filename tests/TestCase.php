@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: TestCase.php,v 1.0.0 2026/06/28 00:00:00 -0700 kyau Exp $
+# $KYAULabs: TestCase.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -11,4 +12,6 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
 }
+// vim: ft=php sts=4 sw=4 ts=4 et :
+
 // vim: ft=php sts=4 sw=4 ts=4 et :

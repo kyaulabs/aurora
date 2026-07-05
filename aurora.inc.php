@@ -1,33 +1,9 @@
 <?php
 
-declare(strict_types=1);
+# $KYAULabs: aurora.inc.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
 
-/**
- * $KYAULabs: aurora.inc.php,v 1.1.5 2026/07/01 12:37:24 -0700 kyau Exp $
- * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
- * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
- * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
- * ■ ██▄▀ ██▄█ ██▄█ ██ █ ▀▀ ██   ██▄█ ██▄▀ ▀██▄ ■
- * █ ██ █ ▄▄ █ ██ █ ██ █    ██▄▄ ██ █ ██ █  ▄██ █
- * ▄ ▀▀ ▀ ▀▀▀▀ ▀▀ ▀ ▀▀▀▀    ▀▀▀▀ ▀▀ ▀ ▀▀▀▀ ▀▀▀  █
- * ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀
- *
- * Aurora HTML5 Template Engine
- * Copyright (C) 2026 KYAU Labs (https://kyaulabs.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+
+declare(strict_types=1);
 
 namespace KYAULabs;
 
@@ -408,46 +384,26 @@ class Aurora
     }
 
     /**
-     * Get the project version from the specified file.
+     * Get the project version.
      *
-     * @param string $project_file The project file.
-     * @param bool $hash Whether to include an MD5 hash fragment.
+     * Reads the SemVer version from version.inc.php (updated by /release).
+     * Falls back to git describe in development environments.
+     *
+     * @param string $project_file Unused — retained for backward compatibility.
+     * @param bool $hash Unused — retained for backward compatibility.
      * @return string|null The project version or null on failure.
      */
-    private function projectVersion(string $project_file, bool $hash = false): ?string
+    private function projectVersion(string $project_file = '', bool $hash = false): ?string
     {
-        if (file_exists($project_file)) {
-            $fd = @fopen($project_file, 'r');
-            if ($fd) {
-                while (($buffer = fgets($fd, 4096)) !== false) {
-                    if (
-                        substr($buffer, 0, 13) == ' * $KYAULabs:' ||
-                        substr($buffer, 0, 12) == '# $KYAULabs:' ||
-                        substr($buffer, 0, 13) == '// $KYAULabs:' ||
-                        substr($buffer, 0, 13) == '/* $KYAULabs:'
-                    ) {
-                        $str = explode(' ', $buffer);
-                        fclose($fd);
-                        $file = str_replace('.php', '.html', strtolower(basename($project_file)));
-                        if ($hash) {
-                            $hash = substr(md5($str[5] . $str[6]), 0, 8);
-                            return $str[2] . ' ' . $file . ',v ' . $str[4] . '-' . $hash;
-                        } else {
-                            return 'v' . $str[4];
-                        }
-                    }
-                }
-                if (!feof($fd)) {
-                    echo "Error: unexpected fgets() fail\n";
-                }
-                fclose($fd);
-            } else {
-                echo "Error: unexpected fopen() fail\n";
-            }
-        } else {
-            printf("Error: file '%s' does not exist\n", $project_file);
+        static $version = null;
+
+        if ($version !== null) {
+            return $version;
         }
-        return null;
+
+        require_once __DIR__ . '/backend/version.php';
+        $version = \aurora_version();
+        return $version;
     }
 
     /**
@@ -480,26 +436,26 @@ class Aurora
      * Generate an HTML comment with project version and render time.
      *
      * @param array $rus The previous resource usage.
-     * @param string $script The script file.
+     * @param string $script Unused — retained for backward compatibility.
      * @param bool $vim Flag to include vim settings.
      * @return string The generated HTML comment.
      */
     public function comment(array $rus, string $script, bool $vim = false): string
     {
         $time = sprintf("%s", self::renderTime($rus, getrusage()));
-        $version = self::projectVersion($script, true);
-        return sprintf("\n<!--\n\t%s  %s\n%s-->", $version, $time, ($vim ? "\tvim: ft=html sts=4 sw=4 ts=4 noet:\n" : ''));
+        $version = self::projectVersion();
+        return sprintf("\n<!--\n\tAurora %s  %s\n%s-->", $version, $time, ($vim ? "\tvim: ft=html sts=4 sw=4 ts=4 noet:\n" : ''));
     }
 
     /**
-     * Get the project version for a specific script.
+     * Get the project version.
      *
-     * @param string $script
-     * @return string|null
+     * @param string $script Unused — retained for backward compatibility.
+     * @return string|null The SemVer version string, or null on failure.
      */
-    public function version(string $script): ?string
+    public function version(string $script = ''): ?string
     {
-        return self::projectVersion($script);
+        return self::projectVersion();
     }
 
     /**
@@ -625,8 +581,8 @@ class AuroraException extends \Exception
     }
 
 }
-
-
 /**
  * vim: ft=php sts=4 sw=4 ts=4 et:
  */
+
+// vim: ft=php sts=4 sw=4 ts=4 et :
