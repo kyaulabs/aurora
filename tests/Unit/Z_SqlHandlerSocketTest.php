@@ -16,7 +16,9 @@ test('uses unix socket DSN when SQL_SOCKET is defined', function () {
     if (!defined('SQL_PASSWD')) {
         define('SQL_PASSWD', 'test_pass');
     }
-    define('SQL_SOCKET', '/tmp/mysql.sock');
+    if (!defined('SQL_SOCKET')) {
+        define('SQL_SOCKET', '/tmp/mysql.sock');
+    }
 
     ob_start();
     $handler = new SQLHandler('test_db');
