@@ -189,15 +189,16 @@ class SQLHandler
         $msg = "<span class=\"error\"><strong>An error has occurred: </strong><br/>\n<pre>";
         $msg .= htmlspecialchars($e->getMessage()) . "<br/>\n";
         foreach ($trace as $line) {
+            $line += ['type' => '', 'function' => '', 'file' => '', 'line' => ''];
             $msg .= "\t<strong>at</strong> ";
             if (!empty($line['class'])) {
                 $msg .= htmlspecialchars($line['class']);
-                $msg .= htmlspecialchars($line['type'] ?? '');
+                $msg .= htmlspecialchars($line['type']);
             }
-            $msg .= htmlspecialchars($line['function'] ?? '') . "()";
-            $path = htmlspecialchars($line['file'] ?? '')
+            $msg .= htmlspecialchars($line['function']) . "()";
+            $path = htmlspecialchars($line['file'])
                 . " (<strong>line</strong> "
-                . htmlspecialchars((string)($line['line'] ?? ''))
+                . htmlspecialchars((string)$line['line'])
                 . ")<br/>";
             $msg .= " <strong>in</strong> " . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path);
         }
@@ -206,10 +207,11 @@ class SQLHandler
             echo $msg;
         } else {
             error_log("MYSQL: " . $e->getMessage());
-            foreach ($e->getTrace() as $line) {
-                $add = !empty($line['class']) ? $line['class'] . ($line['type'] ?? '') : '';
-                $path = ($line['file'] ?? '') . " (line " . ($line['line'] ?? '') . ")";
-                error_log("MYSQL: " . $add . ($line['function'] ?? '') . '() ' . ($line['file'] ?? '') . ' (line ' . ($line['line'] ?? '') . ') in ' . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path));
+            foreach ($trace as $line) {
+                $line += ['type' => '', 'function' => '', 'file' => '', 'line' => ''];
+                $add = !empty($line['class']) ? $line['class'] . $line['type'] : '';
+                $path = $line['file'] . " (line " . $line['line'] . ")";
+                error_log("MYSQL: " . $add . $line['function'] . '() in ' . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path));
             }
         }
     }
