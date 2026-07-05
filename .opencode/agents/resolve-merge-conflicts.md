@@ -1,6 +1,7 @@
 ---
 description: Resolve in-progress git merge/rebase conflicts. Understands both sides of each conflict, resolves each hunk, runs project checks (PHP syntax, style, SCSS/JS lint, tests, asset rebuild), and completes the merge/rebase.
 mode: subagent
+temperature: 0.1
 ---
 
 You are resolving an in-progress git merge or rebase. Follow these steps in order. Do not `--abort`.
@@ -33,10 +34,11 @@ Resolve conflicts one file at a time. Rules:
 - **Where incompatible**, pick the change matching the merge's stated goal. Note the trade-off
   in the merge commit body.
 - **Do not invent new behavior.** Only choose from the changes present in the two sides.
-- **Honor project indentation:** PHP 4-space, SCSS 2-space, JS tabs (tab-stop 4).
-- **Generated assets rule:** If `cdn/css/*.min.css` or `cdn/javascript/*.min.js` have
-  conflicts, **do not** resolve them directly — resolve the conflict in the corresponding
-  source file (`cdn/sass/*.scss` or `cdn/js/*.js`) instead. The minified output will be
+- **Honor project indentation and hard boundaries** (see `AGENTS.md`): PHP
+  4-space, SCSS 2-space, JS tabs (tab-stop 4). Generated assets
+  (`cdn/css/*.min.css`, `cdn/javascript/*.min.js`) must not be resolved
+  directly — resolve the conflict in the corresponding source file
+  (`cdn/sass/*.scss` or `cdn/js/*.js`) instead; the minified output will be
   rebuilt in Step 4.
 - **Do not commit secrets** (`.env` files, hardcoded credentials) — flag these immediately.
 - When resolution is complete, stage the resolved file with `git add <file>`.
@@ -68,7 +70,7 @@ npx eslint "cdn/js/**/*.js" --ignore-pattern "*.min.js" 2>/dev/null || echo "esl
 
 ### Tests
 ```bash
-php vendor/bin/pest --coverage
+php -d pcov.enabled=1 vendor/bin/pest --coverage
 ```
 Coverage must be ≥80% on changed files. If it drops below, fix or flag it.
 

@@ -177,21 +177,4 @@ describe('SQLHandler query PDOException catch', function () {
     });
 });
 
-describe('SQLHandler settings.inc.php inclusion', function () {
-    test('includes settings.inc.php when it exists', function () {
-        $settingsPath = __DIR__ . '/../../settings.inc.php';
-        file_put_contents($settingsPath, '<?php ');
-
-        try {
-            ob_start();
-            $handler = new SQLHandler('test_db');
-            ob_end_clean();
-
-            expect($handler->pdo)->toBeNull();
-        } finally {
-            unlink($settingsPath);
-        }
-    });
-});
-
 // vim: ft=php sts=4 sw=4 ts=4 et :

@@ -1,6 +1,6 @@
 # Coding Conventions
 
-Referenced by `opencode.json`. Loaded alongside AGENTS.md in every session.
+Referenced by `opencode.json`. Loaded alongside AGENTS.md in every session. This file is the canonical source for file naming, indentation, and code style. AGENTS.md defers here.
 
 ## File Naming
 
@@ -34,9 +34,15 @@ arch('no debug functions in production code')
     ->not->toBeUsed();
 
 arch('backend classes use strict types')
-    ->expect('App')
+    ->expect('KYAULabs')
     ->toUseStrictTypes();
 ```
+
+The `KYAULabs` namespace covers Aurora and any project classes following the
+same convention. Backend procedural helpers in `backend/` are covered by the
+`no debug functions` rule above rather than the strict-types namespace check,
+since procedural files do not declare a namespace.
+
 
 ## JavaScript
 

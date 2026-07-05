@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: .php-cs-fixer.dist.php,v 1.0.0 2026/06/24 00:00:00 -0700 kyau Exp $
+# $KYAULabs: .php-cs-fixer.dist.php Sean Bruen@NOVA 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -8,17 +9,28 @@ use PhpCsFixer\Config;
 use PhpCsFixer\Finder;
 
 return (new Config())
-    ->setRiskyAllowed(false)
+    ->setRiskyAllowed(true)
     ->setRules([
-        '@PSR12' => true
+        '@PSR12' => true,
+        'declare_strict_types' => true,
     ])
     // 💡 by default, Fixer looks for `*.php` files excluding `./vendor/` - here, you can groom this config
     ->setFinder(
         (new Finder())
+            // 💡 root folder to check
             ->in(__DIR__)
-            ->exclude(['node_modules', 'vendor'])
-            ->notPath('#^node_modules/#')
-            ->notPath('#^vendor/#')
+            // 💡 exclude third-party dependencies
+            ->exclude(['vendor', 'node_modules', 'aurora'])
+        // 💡 additional files, eg bin entry file
+        // ->append([__DIR__.'/bin-entry-file'])
+        // 💡 folders to exclude, if any
+        // ->exclude([/* ... */])
+        // 💡 path patterns to exclude, if any
+        // ->notPath([/* ... */])
+        // 💡 extra configs
+        // ->ignoreDotFiles(false) // true by default in v3, false in v4 or future mode
+        // ->ignoreVCS(true) // true by default
     )
 ;
+
 // vim: ft=php sts=4 sw=4 ts=4 et :
