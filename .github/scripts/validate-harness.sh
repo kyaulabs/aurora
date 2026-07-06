@@ -35,20 +35,12 @@ ok() { echo "  OK:    $*"; }
 
 # Extract a YAML frontmatter key's value from a file.
 # Usage: frontmatter_key <file> <key>
-# Returns the value (whitespace trimmed) or empty string if not found.
+# Returns the value or empty string if not found.
+# Delegates to Node.js + js-yaml for proper YAML parsing (handles quoted
+# values, folded scalars, block scalars, comments, and CRLF).
 frontmatter_key() {
 	local file="$1" key="$2"
-	# Only search between the first pair of --- delimiters.
-	# Counter-based (not toggle): fm=1 after 1st ---, stop at fm=2.
-	awk -v key="$2" '
-		/^---$/ { fm++; next }
-		fm == 1 && $1 == key ":" {
-			sub(/^[^:]+:[[:space:]]*/, "")
-			print
-			exit
-		}
-		fm == 2 { exit }
-	' "$file" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+	node "${REPO_ROOT}/.github/scripts/frontmatter-parser.js" "$file" "$key" 2>/dev/null || true
 }
 
 # Check that a file has paired --- frontmatter delimiters.
