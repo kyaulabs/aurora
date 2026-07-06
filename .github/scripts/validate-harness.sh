@@ -258,6 +258,7 @@ while IFS= read -r file; do
 
 		# Extract backtick-wrapped names from this line
 		# Use basic grep -o (no -P for portability)
+		# shellcheck disable=SC2016  # backticks are a literal grep pattern, not expansion
 		refs=$(echo "$line" | grep -o '`[^`]*`' 2>/dev/null || true)
 		if [ -z "$refs" ]; then
 			continue
