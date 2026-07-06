@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: bootstrap.php,v 1.0.0 2026/06/28 00:00:00 -0700 kyau Exp $
+# $KYAULabs: bootstrap.php kyau@nova 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -19,4 +20,6 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
 //require_once __DIR__ . '/../aurora.inc.php';
+// vim: ft=php sts=4 sw=4 ts=4 et :
+
 // vim: ft=php sts=4 sw=4 ts=4 et :

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# $KYAULabs: post-merge kyau@nova 2026/06/30 -0700 Exp $
+
+set -euo pipefail
+
+git submodule update --init --recursive
+
+#ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+#if [ -x "$ROOT/backend/build-assets" ]; then
+#	"$ROOT/backend/build-assets"
+#fi

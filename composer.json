@@ -1,15 +1,18 @@
 {
-	"name": "kyaulabs/aurora",
-	"description": "Aurora — PHP template framework for use with HTML5/AJAX.",
+	"name": "kyaulabs/template",
+	"description": "Template — Change This Description",
 	"type": "project",
 	"require": {
 		"php": ">=8.5"
 	},
 	"require-dev": {
-		"friendsofphp/php-cs-fixer": "*",
-		"pestphp/pest": "*",
-		"pestphp/pest-plugin-arch": "*",
-		"pestphp/pest-plugin-browser": "*"
+		"friendsofphp/php-cs-fixer": "^3",
+		"pestphp/pest": "^4",
+		"pestphp/pest-plugin-arch": "^4",
+		"pestphp/pest-plugin-browser": "^4"
+	},
+	"autoload": {
+		"classmap": [".opencode/evals/bin/includes/"]
 	},
 	"autoload-dev": {
 		"classmap": ["tests/"]

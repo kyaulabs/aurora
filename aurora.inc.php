@@ -1,33 +1,9 @@
 <?php
 
-declare(strict_types=1);
+# $KYAULabs: aurora.inc.php kyau@nova 2026/07/04 -0700 Exp $
 
-/**
- * $KYAULabs: aurora.inc.php,v 1.1.4 2026/06/29 13:21:45 -0700 kyau Exp $
- * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
- * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
- * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
- * ■ ██▄▀ ██▄█ ██▄█ ██ █ ▀▀ ██   ██▄█ ██▄▀ ▀██▄ ■
- * █ ██ █ ▄▄ █ ██ █ ██ █    ██▄▄ ██ █ ██ █  ▄██ █
- * ▄ ▀▀ ▀ ▀▀▀▀ ▀▀ ▀ ▀▀▀▀    ▀▀▀▀ ▀▀ ▀ ▀▀▀▀ ▀▀▀  █
- * ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀
- *
- * Aurora HTML5 Template Engine
- * Copyright (C) 2026 KYAU Labs (https://kyaulabs.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+
+declare(strict_types=1);
 
 namespace KYAULabs;
 
@@ -44,13 +20,15 @@ class Aurora
 
     /** @var string $aurora_cdn The CDN directory path */
     private $aurora_cdn = "";
+    /** @var string $cdnBasePath The resolved CDN filesystem path */
+    private $cdnBasePath = "";
     /** @var string|null $templateDir Custom template directory (overlay) */
     private $templateDir = null;
     /** @var string $aurora_template The template file name */
     private $aurora_template = "";
 
     /** @var bool $status The status of the instance */
-    private $status = true;
+    private $status = false;
     /** @var bool $html Flag indicating if HTML output is enabled */
     private $html = false;
 
@@ -83,12 +61,21 @@ class Aurora
      */
     public function __construct(?string $template = null, ?string $cdn = '/cdn', bool $status = false, bool $html = false, ?string $templateDir = null)
     {
-        // error handling
+        // error handling — safe defaults (display off) before validation
+        // that may throw. The $status override below enables verbose display in dev.
         set_exception_handler(['\KYAULabs\Aurora', 'exceptionHandler']);
-        ini_set('display_errors', '1');
-        ini_set('display_startup_errors', '1');
-        ini_set('error_reporting', '-1');
-        ini_set('html_errors', '1');
+        $this->phpSet('display_errors', '0');
+        $this->phpSet('display_startup_errors', '0');
+        $this->phpSet('error_reporting', (string)E_ALL);
+        $this->phpSet('html_errors', '0');
+
+        // Enable verbose display in dev mode before validation that may throw.
+        if ($status) {
+            $this->phpSet('display_errors', '1');
+            $this->phpSet('display_startup_errors', '1');
+            $this->phpSet('error_reporting', '-1');
+            $this->phpSet('html_errors', '1');
+        }
 
         // store custom template directory (overlay path)
         $this->templateDir = $templateDir;
@@ -114,6 +101,7 @@ class Aurora
             throw new AuroraException("Invalid directory: " . $orig_dir . '/' . $cdn, 'cdn', 1);
         } else {
             $this->aurora_cdn = $cdn;
+            $this->cdnBasePath = $orig_dir . '/..' . $cdn;
         }
 
         // Enable unicode and set default timezone to UTC.
@@ -125,20 +113,7 @@ class Aurora
 
         // Set the status and html output variables accordingly.
         $this->status = $status;
-        ($html) ? $this->html = $html : '';
-
-        // Set logging settings accordingly.
-        if ($this->status) {
-            $this->phpSet('display_errors', '1');
-            $this->phpSet('display_startup_errors', '1');
-            $this->phpSet('error_reporting', '-1');
-            $this->phpSet('html_errors', '1');
-        } else {
-            $this->phpSet('display_errors', '0');
-            $this->phpSet('display_startup_errors', '0');
-            $this->phpSet('error_reporting', (string)E_ALL);
-            $this->phpSet('html_errors', '0');
-        }
+        $this->html = $html;
 
         // HTML Mode
         if ($this->html) {
@@ -153,18 +128,15 @@ class Aurora
      * Magic getter for accessing private properties.
      *
      * @param string $name The name of the property.
-     * @return string|null The value of the property or null if not found.
+     * @return mixed The value of the property or null if not found.
      */
-    public function __get(string $name): ?string
+    public function __get(string $name): mixed
     {
-        if (in_array($name, array('aurora_cdn', 'dns', 'preload', 'css', 'js', 'mjs', 'status', 'html'))) {
-            if (!empty($this->$name)) {
-                return $this->$name;
-            }
-        } else {
-            if (array_key_exists($name, $this->vars)) {
-                return $this->vars[$name];
-            }
+        if (in_array($name, ['aurora_cdn', 'dns', 'preload', 'css', 'js', 'mjs', 'status', 'html'])) {
+            return $this->$name;
+        }
+        if (array_key_exists($name, $this->vars)) {
+            return $this->vars[$name];
         }
         trigger_error("Error: unable to find variable '{$name}'", E_USER_WARNING);
         return null;
@@ -238,7 +210,7 @@ class Aurora
             }
             foreach ($this->preload as $url => $type) {
                 if (in_array($type, array("script", "style"))) {
-                    $path = '..' . $this->aurora_cdn . $url;
+                    $path = $this->cdnBasePath . $url;
                     if (!file_exists($path)) {
                         throw new AuroraException("{$path} does not exist.", 'preload', 1);
                     }
@@ -404,46 +376,26 @@ class Aurora
     }
 
     /**
-     * Get the project version from the specified file.
+     * Get the project version.
      *
-     * @param string $project_file The project file.
-     * @param bool $hash Whether to include an MD5 hash fragment.
+     * Reads the SemVer version from version.inc.php (updated by /release).
+     * Falls back to git describe in development environments.
+     *
+     * @param string $project_file Unused — retained for backward compatibility.
+     * @param bool $hash Unused — retained for backward compatibility.
      * @return string|null The project version or null on failure.
      */
-    private function projectVersion(string $project_file, bool $hash = false): ?string
+    private function projectVersion(string $project_file = '', bool $hash = false): ?string
     {
-        if (file_exists($project_file)) {
-            $fd = @fopen($project_file, 'r');
-            if ($fd) {
-                while (($buffer = fgets($fd, 4096)) !== false) {
-                    if (
-                        substr($buffer, 0, 13) == ' * $KYAULabs:' ||
-                        substr($buffer, 0, 12) == '# $KYAULabs:' ||
-                        substr($buffer, 0, 13) == '// $KYAULabs:' ||
-                        substr($buffer, 0, 13) == '/* $KYAULabs:'
-                    ) {
-                        $str = explode(' ', $buffer);
-                        fclose($fd);
-                        $file = str_replace('.php', '.html', strtolower(basename($project_file)));
-                        if ($hash) {
-                            $hash = substr(md5($str[5] . $str[6]), 0, 8);
-                            return $str[2] . ' ' . $file . ',v ' . $str[4] . '-' . $hash;
-                        } else {
-                            return 'v' . $str[4];
-                        }
-                    }
-                }
-                if (!feof($fd)) {
-                    echo "Error: unexpected fgets() fail\n";
-                }
-            } else {
-                echo "Error: unexpected fopen() fail\n";
-            }
-            fclose($fd);
-        } else {
-            printf("Error: file '%s' does not exist\n", $project_file);
+        static $version = null;
+
+        if ($version !== null) {
+            return $version;
         }
-        return null;
+
+        require_once __DIR__ . '/backend/version.php';
+        $version = \aurora_version();
+        return $version;
     }
 
     /**
@@ -476,26 +428,26 @@ class Aurora
      * Generate an HTML comment with project version and render time.
      *
      * @param array $rus The previous resource usage.
-     * @param string $script The script file.
+     * @param string $script Unused — retained for backward compatibility.
      * @param bool $vim Flag to include vim settings.
      * @return string The generated HTML comment.
      */
     public function comment(array $rus, string $script, bool $vim = false): string
     {
         $time = sprintf("%s", self::renderTime($rus, getrusage()));
-        $version = self::projectVersion($script, true);
-        return sprintf("\n<!--\n\t%s  %s\n%s-->", $version, $time, ($vim ? "\tvim: ft=html sts=4 sw=4 ts=4 noet:\n" : ''));
+        $version = self::projectVersion();
+        return sprintf("\n<!--\n\tAurora %s  %s\n%s-->", $version, $time, ($vim ? "\tvim: ft=html sts=4 sw=4 ts=4 noet:\n" : ''));
     }
 
     /**
-     * Get the project version for a specific script.
+     * Get the project version.
      *
-     * @param string $script
-     * @return string|null
+     * @param string $script Unused — retained for backward compatibility.
+     * @return string|null The SemVer version string, or null on failure.
      */
-    public function version(string $script): ?string
+    public function version(string $script = ''): ?string
     {
-        return self::projectVersion($script);
+        return self::projectVersion();
     }
 
     /**
@@ -621,8 +573,8 @@ class AuroraException extends \Exception
     }
 
 }
-
-
 /**
  * vim: ft=php sts=4 sw=4 ts=4 et:
  */
+
+// vim: ft=php sts=4 sw=4 ts=4 et :

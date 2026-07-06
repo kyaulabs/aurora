@@ -1,9 +1,12 @@
 <?php
 
+# $KYAULabs: sql.inc.php kyau@nova 2026/07/04 -0700 Exp $
+
+
 declare(strict_types=1);
 
 /**
- * $KYAULabs: sql.inc.php,v 1.1.0 2026/06/29 13:23:36 -0700 kyau Exp $
+
  * ▄▄▄▄ ▄▄▄▄ ▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
  * █ ▄▄ ▄ ▄▄ ▄ ▄▄▄▄ ▄▄ ▄    ▄▄   ▄▄▄▄ ▄▄▄▄  ▄▄▄ ▀
  * █ ██ █ ██ █ ██ █ ██ █    ██   ██ █ ██ █ ██▀  █
@@ -184,15 +187,19 @@ class SQLHandler
     {
         $trace = $e->getTrace();
         $msg = "<span class=\"error\"><strong>An error has occurred: </strong><br/>\n<pre>";
-        $msg .= $e->getMessage() . "<br/>\n";
+        $msg .= htmlspecialchars($e->getMessage()) . "<br/>\n";
         foreach ($trace as $line) {
+            $line += ['type' => '', 'function' => '', 'file' => '', 'line' => ''];
             $msg .= "\t<strong>at</strong> ";
             if (!empty($line['class'])) {
-                $msg .= $line['class'];
-                $msg .= $line['type'];
+                $msg .= htmlspecialchars($line['class']);
+                $msg .= htmlspecialchars($line['type']);
             }
-            $msg .= $line['function'] . "()";
-            $path = $line['file'] . " (<strong>line</strong> " . $line['line'] . ")<br/>";
+            $msg .= htmlspecialchars($line['function']) . "()";
+            $path = htmlspecialchars($line['file'])
+                . " (<strong>line</strong> "
+                . htmlspecialchars((string)$line['line'])
+                . ")<br/>";
             $msg .= " <strong>in</strong> " . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path);
         }
         $msg .= "</pre></span>";
@@ -200,10 +207,11 @@ class SQLHandler
             echo $msg;
         } else {
             error_log("MYSQL: " . $e->getMessage());
-            foreach ($e->getTrace() as $line) {
+            foreach ($trace as $line) {
+                $line += ['type' => '', 'function' => '', 'file' => '', 'line' => ''];
                 $add = !empty($line['class']) ? $line['class'] . $line['type'] : '';
                 $path = $line['file'] . " (line " . $line['line'] . ")";
-                error_log("MYSQL: " . $add . $line['function'] . '() ' . $line['file'] . ' (line ' . $line['line'] . ') in ' . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path));
+                error_log("MYSQL: " . $add . $line['function'] . '() in ' . str_replace(($_SERVER['DOCUMENT_ROOT'] ?? ''), "", $path));
             }
         }
     }
@@ -220,3 +228,5 @@ class SQLHandler
 /**
  * vim: ft=php sts=4 sw=4 ts=4 et:
  */
+
+// vim: ft=php sts=4 sw=4 ts=4 et :

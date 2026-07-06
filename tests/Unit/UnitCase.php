@@ -1,6 +1,7 @@
 <?php
 
-# $KYAULabs: UnitCase.php,v 1.0.0 2026/06/28 00:00:00 -0700 kyau Exp $
+# $KYAULabs: UnitCase.php kyau@nova 2026/07/04 -0700 Exp $
+
 
 declare(strict_types=1);
 
@@ -26,4 +27,6 @@ abstract class UnitCase extends TestCase
         }
     }
 }
+// vim: ft=php sts=4 sw=4 ts=4 et :
+
 // vim: ft=php sts=4 sw=4 ts=4 et :
