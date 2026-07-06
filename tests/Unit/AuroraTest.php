@@ -599,6 +599,40 @@ describe('version() edge cases', function () {
     });
 });
 
-// vim: ft=php sts=4 sw=4 ts=4 et :
+describe('constructor error-display defaults during throw', function () {
+    test('display_errors remains off when construction throws with status=false', function () {
+        ini_set('display_errors', '0');
+        ini_set('display_startup_errors', '0');
+        ini_set('html_errors', '0');
+
+        try {
+            new Aurora('nonexistent.html', '/cdn', false, false);
+        } catch (\KYAULabs\AuroraException $e) {
+            // expected
+        }
+
+        expect(ini_get('display_errors'))->toBe('0');
+        expect(ini_get('display_startup_errors'))->toBe('0');
+        expect(ini_get('html_errors'))->toBe('0');
+        expect(ini_get('error_reporting'))->toBe((string)E_ALL);
+    });
+
+    test('display_errors is on when construction throws with status=true', function () {
+        ini_set('display_errors', '0');
+        ini_set('display_startup_errors', '0');
+        ini_set('html_errors', '0');
+
+        try {
+            new Aurora('nonexistent.html', '/cdn', true, false);
+        } catch (\KYAULabs\AuroraException $e) {
+            // expected
+        }
+
+        expect(ini_get('display_errors'))->toBe('1');
+        expect(ini_get('display_startup_errors'))->toBe('1');
+        expect(ini_get('html_errors'))->toBe('1');
+    });
+
+});
 
 // vim: ft=php sts=4 sw=4 ts=4 et :

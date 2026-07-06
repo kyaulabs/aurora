@@ -28,7 +28,7 @@ class Aurora
     private $aurora_template = "";
 
     /** @var bool $status The status of the instance */
-    private $status = true;
+    private $status = false;
     /** @var bool $html Flag indicating if HTML output is enabled */
     private $html = false;
 
@@ -61,12 +61,21 @@ class Aurora
      */
     public function __construct(?string $template = null, ?string $cdn = '/cdn', bool $status = false, bool $html = false, ?string $templateDir = null)
     {
-        // error handling
+        // error handling — safe defaults (display off) before validation
+        // that may throw. The $status override below enables verbose display in dev.
         set_exception_handler(['\KYAULabs\Aurora', 'exceptionHandler']);
-        ini_set('display_errors', '1');
-        ini_set('display_startup_errors', '1');
-        ini_set('error_reporting', '-1');
-        ini_set('html_errors', '1');
+        $this->phpSet('display_errors', '0');
+        $this->phpSet('display_startup_errors', '0');
+        $this->phpSet('error_reporting', (string)E_ALL);
+        $this->phpSet('html_errors', '0');
+
+        // Enable verbose display in dev mode before validation that may throw.
+        if ($status) {
+            $this->phpSet('display_errors', '1');
+            $this->phpSet('display_startup_errors', '1');
+            $this->phpSet('error_reporting', '-1');
+            $this->phpSet('html_errors', '1');
+        }
 
         // store custom template directory (overlay path)
         $this->templateDir = $templateDir;
@@ -104,20 +113,7 @@ class Aurora
 
         // Set the status and html output variables accordingly.
         $this->status = $status;
-        ($html) ? $this->html = $html : '';
-
-        // Set logging settings accordingly.
-        if ($this->status) {
-            $this->phpSet('display_errors', '1');
-            $this->phpSet('display_startup_errors', '1');
-            $this->phpSet('error_reporting', '-1');
-            $this->phpSet('html_errors', '1');
-        } else {
-            $this->phpSet('display_errors', '0');
-            $this->phpSet('display_startup_errors', '0');
-            $this->phpSet('error_reporting', (string)E_ALL);
-            $this->phpSet('html_errors', '0');
-        }
+        $this->html = $html;
 
         // HTML Mode
         if ($this->html) {
