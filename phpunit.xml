@@ -16,6 +16,9 @@
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
+        <testsuite name="Browser">
+            <directory>tests/Browser</directory>
+        </testsuite>
     </testsuites>
 
     <source>
@@ -26,6 +29,7 @@
             <directory>tests</directory>
             <directory>vendor</directory>
             <directory>node_modules</directory>
+            <directory>aurora</directory>
             <file>.php-cs-fixer.dist.php</file>
         </exclude>
     </source>
