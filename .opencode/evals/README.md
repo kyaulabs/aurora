@@ -4,7 +4,41 @@ Harness self-evaluation: structural validation catches rot in the prompt
 files; scenario evals verify that agents and skills actually produce the
 expected behavior.
 
-**Status:** Phase 1 — skeleton in place; live execution pending API access.
+**Status:** Phase 2 — automated runner implemented. Run evals with the PHP CLI
+scripts under `bin/`. See Usage below.
+
+## Usage
+
+### Run a single eval case
+
+```bash
+php .opencode/evals/bin/run-eval.php .opencode/evals/smoke/tdd-red-green.json
+```
+
+Options: `--timeout <seconds>` (default 120), `--dry-run` (print command, don't execute).
+
+Output: JSON result object to stdout. Exit code 0 = PASS, 1 = FAIL, 2 = SKIPPED.
+
+### Run a suite
+
+```bash
+php .opencode/evals/bin/run-suite.php .opencode/evals/smoke/
+```
+
+Options: `--tag <tag>` (filter by tags field), `--timeout <seconds>` (per case).
+
+Output: markdown summary table to stdout, detailed JSON to `results/<timestamp>.json`.
+Exit code 0 = all passed, 1 = one or more failures.
+
+### In pre-commit/pre-push hooks
+
+```bash
+php .opencode/evals/bin/run-suite.php .opencode/evals/smoke/ --tag smoke
+if [ $? -ne 0 ]; then
+    echo "Eval suite failed — review results before pushing."
+    exit 1
+fi
+```
 
 ## Structure
 
@@ -12,8 +46,19 @@ expected behavior.
 .opencode/evals/
 ├── README.md           ← This file
 ├── schema.json         ← JSON Schema for eval case definitions
-└── smoke/              ← Minimal smoke evals (one per critical agent)
-    └── tdd-red-green.json
+├── bin/                ← Runner scripts
+│   ├── includes/
+│   │   └── EvalRunner.php  ← Shared classes (EvalCase, EvalResult, Runner)
+│   ├── run-eval.php    ← Single-case runner
+│   └── run-suite.php   ← Batch suite runner
+├── smoke/              ← Minimal smoke evals (one per critical agent)
+│   ├── tdd-red-green.json
+│   ├── receiving-code-review-triage.json
+│   ├── finishing-a-development-branch-checklist.json
+│   ├── finding-duplicate-functions-two-phase.json
+│   └── opencode-docs-reference.json
+└── results/            ← Generated result files (gitignored)
+    └── <timestamp>.json
 ```
 
 ## Eval case format
@@ -30,21 +75,13 @@ Each eval case is a JSON file conforming to `schema.json`. Fields:
 | `pass_criteria` | yes | How to determine pass/fail (e.g. "all behaviors observed", "no errors in output") |
 | `tags` | no | For filtering (e.g. `["smoke", "tdd", "critical"]`) |
 
-## Running evals
+## Planned runner
 
-Execution requires an OpenCode instance with API access. When that is
-available:
-
-```bash
-# Run smoke evals only
-opencode eval .opencode/evals/smoke/
-
-# Run all evals
-opencode eval .opencode/evals/
-```
-
-Until then, the framework defines the convention so that eval cases can be
-authored alongside prompt changes.
+When an automated runner is available, evals will be driven non-interactively
+against each case file — the schema and case format below are stable; only the
+runner is pending. In the meantime, eval cases serve as behavioral
+specifications: when you change a skill or agent, add or update its eval case
+in the same commit to document the expected behavior.
 
 ## Authoring conventions
 
@@ -62,6 +99,7 @@ authored alongside prompt changes.
 
 ## Cross-refs
 
-- `.github/scripts/validate-harness.sh` — structural frontmatter validation
-  (runs in CI; catches malformed files before they cause silent failures)
 - `AGENTS.md` § Git Workflow — no-squash policy (commit history is the eval log)
+- `AGENTS.md` § Linting & Enforcement — structural validation of frontmatter
+  is planned via CI; until then, validate manually when adding or changing
+  skills, agents, or commands

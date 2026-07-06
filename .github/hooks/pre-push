@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# $KYAULabs: pre-push kyau@nova 2026/07/04 -0700 Exp $
+
 set -euo pipefail
 
 YELLOW=$'\033[1;33m'

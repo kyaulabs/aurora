@@ -61,6 +61,7 @@ Projects live in `/nginx/git/<app>`, symlinked into `/nginx/https/<domain>`.
 ## Hard Boundaries
 
 > [!IMPORTANT]
+>
 > - NEVER edit `cdn/css/*.min.css` or `cdn/javascript/*.min.js` — these are generated (edit source in `cdn/sass/` and `cdn/js/`; see `conventions.md` for details)
 > - NEVER commit `.env` files — use `.env.example` only
 > - Do not access external APIs without explicit permission
@@ -75,6 +76,7 @@ See `.opencode/docs/conventions.md` for file naming conventions.
 ## Commenting
 
 > [!IMPORTANT]
+>
 > - Every file starts with an RCS-style header — see `rcs-header` skill
 > - Every file ends with a vim modeline — see `rcs-header` skill
 > - PHP classes/methods: PHPDoc (PSR-5) with params, return types, exceptions
@@ -102,16 +104,17 @@ RCS headers, style-only, patch deps, test-only fixes) follow a fast-path —
 see the brainstorming skill for the full definition.
 
 ```text
-brainstorming → prototype (if needed) → writing-plans → @tdd (per task) → verification-before-completion → /check → @code-review
+brainstorming → prototype (if needed) → writing-plans → executing-plans → @tdd (per task) → verification-before-completion → /check → @code-review
 ```
 
 1. **Brainstorm** the change (grilling skill) → spec in `docs/specs/`.
 2. **Prototype** (if technical viability is uncertain) → throwaway code to answer the question, then delete (prototype skill).
 3. **Plan** the implementation (writing-plans skill) → plan in `docs/plans/`.
-4. **Implement** each task via `@tdd` (Red → Green → Refactor, vertical slices).
-5. **Verify** completion (verification-before-completion skill).
-6. **Gate** with `/check` (lint + coverage 80%).
-7. **Review** with `@code-review` before push.
+4. **Execute** the plan (executing-plans skill) → dispatch tasks to `@tdd`, review between tasks.
+5. **Implement** each task via `@tdd` (Red → Green → Refactor, vertical slices).
+6. **Verify** completion (verification-before-completion skill).
+7. **Gate** with `/check` (lint + coverage 80%).
+8. **Review** with `@code-review` before push.
 
 For non-trivial or cross-cutting changes, insert `@architect` before step 4.
 For bugs, use `@debug` (disciplined 6-phase loop) before `@tdd` on the fix.
@@ -131,15 +134,27 @@ For linting details and responsive/mobile-first CSS rules, see `scss-mobile-firs
 - Features: `feat/<username>-<hash>-<description>`
 - Commits: Conventional Commits format (type[scope]: subject) — see `conventional-commits` skill
 - Signed commits required
-- Every commit must include `Acked-by:` (model ID in kebab-case, e.g. `deepseek-v4-pro`) and `Signed-off-by:` (user) footers. Default Signed-off-by: `kyau <git@kyaulabs.com>`.
+- Every commit must include `Plan-by:` (sourced from `agent.plan.model` in `opencode.json`), `Acked-by:` (sourced from `agent.build.model` in `opencode.json` — model ID segment after the last `/`), and `Signed-off-by:` (user) footers. Default Signed-off-by: `kyau <git@kyaulabs.com>`.
 - No squash merges. Each logical change is its own atomic commit — the git history serves as the development and evaluation log. A pre-push hook warns on single-commit branches that look like squashes.
 
 After implementing any change — whether via @tdd, a direct fix, an issue
 tracker resolution, or a fast-path trivial change — produce a commit message
 in conventional commits format before committing. Load the
-`conventional-commits` skill and produce: type[scope]: subject + Acked-by +
-Signed-off-by footers. The commit-msg hook blocks invalid messages, but the
+`conventional-commits` skill and produce: type[scope]: subject + Plan-by +
+Acked-by + Signed-off-by footers. The commit-msg hook blocks invalid messages,
+but the
 message should be well-formed before you reach the hook.
+
+### Commit and push permissions
+
+- **`@tdd`** and **`@resolve-merge-conflicts`** are permitted to `git add` and
+  `git commit` — commits happen inside disciplined cycles where the commit
+  message is presented to the user before execution.
+- The **`build`** primary agent prompts (`ask`) before `git add` or
+  `git commit` — the user sees the full command including the commit message in
+  the approval dialog. Used by `/release`, `/build-assets`, and design-document
+  commits from `brainstorming`.
+- **`git push`** is denied to **every agent**. Only the human pushes.
 
 ## Build Pipeline
 
@@ -178,8 +193,12 @@ Load these on demand when the task requires them:
 | `brainstorming` | Before any creative work — features, components, behavior changes. Grilling → design → spec |
 | `prototype` | Answering a technical viability question with throwaway code before committing to a plan |
 | `writing-plans` | After brainstorming approval — produces a bite-sized TDD implementation plan |
+| `executing-plans` | After writing-plans — dispatches tasks to @tdd with two-mode execution (inline or dispatch), per-task review gates, and halt/re-plan policy |
+| `finding-duplicate-functions` | Scanning for semantic duplication — two-phase (classical extraction + LLM intent-clustering), complements /improve-architecture's deletion test |
+| `finishing-a-development-branch` | When a feature branch is complete — verify readiness (checklist), present disposal options (merge/PR/keep/discard), enforce no-squash policy |
 | `verification-before-completion` | Before declaring a task done — verifies tests pass, no debug artifacts, lint clean |
 | `rcs-header` | Creating or modifying any source file |
+| `receiving-code-review` | Triaging and responding to @code-review findings — severity triage matrix, anti-over-compliance rules, deferral discipline |
 | `aurora-page` | Creating a new PHP page |
 | `scss-mobile-first` | Writing or reviewing SCSS (breakpoints, units, build) |
 | `frontend-design` | Writing or reviewing visual language — responsive/mobile-first, CSS transitions, CSS-driven flow, neumorphism, default theme + tokens |
@@ -191,6 +210,7 @@ Load these on demand when the task requires them:
 | `adr` | Writing, reviewing, or superseding an Architecture Decision Record |
 | `systems-design` | Designing a non-trivial change — ADR vs RFC, C4-lite, interface design |
 | `conventional-commits` | Writing or reviewing commit messages |
+| `opencode-docs` | Vendored opencode.ai/docs reference — config schemas, plugin hooks, permission rules, SDK API. Load instead of guessing or calling /research |
 | `pest-browser` | Writing browser tests |
 | `audit-deps` | Scanning PHP/JS dependencies for known CVEs |
 | `writing-skills` | Authoring new skills, agents, commands, or docs in `.opencode/` |
@@ -205,7 +225,7 @@ Load these on demand when the task requires them:
 | `@architect` | subagent | Read-only evaluation of a proposed change against `CONTEXT.md` + ADRs before implementation |
 | `@resolve-merge-conflicts` | subagent | Resolving in-progress git merge/rebase conflicts |
 | `@semgrep` | subagent | SAST scanning — diff audit + full scan (PHP/JS/secrets) |
-| `@debug` | subagent | Investigating bugs — disciplined 6-phase loop: feedback loop → reproduce → hypothesise → instrument → fix → post-mortem |
+| `@debug` | subagent | Investigating bugs — disciplined 6-phase loop: feedback loop → reproduce → hypothesise → instrument → fix → post-mortem. Build-mode agent with scoped investigation write (repro tests, harnesses, instrumentation); not invocable from Plan mode. |
 | `@docs-writer` | subagent | Generating PHPDoc, RCS headers, and documentation |
 
 ## Commands
@@ -221,3 +241,6 @@ Load these on demand when the task requires them:
 | `/security` | SAST scan + dependency CVE audit in one pass |
 | `/improve-architecture` | Scan codebase for deepening opportunities → Obsidian markdown report |
 | `/handoff` | Compact current conversation into a handoff document for another session |
+| `/setup` | Interactive project configurator — replaces `<app>`/`<domain>`/`[EMAIL]` placeholders across the harness, sets accent theme |
+| `/plan-to-issues` | Parse a plan from `docs/plans/` and create a GitHub epic + task issues via `gh` |
+| `/teach` | Explain recently completed work at the user's level — what changed, why this approach, what trade-offs were considered |

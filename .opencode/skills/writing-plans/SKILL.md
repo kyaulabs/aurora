@@ -1,6 +1,7 @@
 ---
 name: writing-plans
 description: Use when you have an approved spec or requirements for a multi-step task, before touching code. Produces a bite-sized, TDD-oriented implementation plan with exact file paths, interfaces, complete code, and verification commands. Sits between brainstorming approval and @tdd execution.
+derived-from: obra/superpowers (MIT, © Jesse Vincent)
 ---
 
 # Writing Plans
@@ -145,6 +146,7 @@ Expected: PASS
 git add tests/path/to/Test.php backend/path/to/file.php
 git commit -S -m "feat(scope): concise subject describing the change
 
+Plan-by: glm-5.2
 Acked-by: deepseek-v4-pro
 Signed-off-by: kyau <git@kyaulabs.com>"
 ```
@@ -164,7 +166,7 @@ failures** — never write them:
   code steps)
 - References to types, functions, or methods not defined in any task
 - Bare commit messages missing scope or required footers — use the full
-  conventional-commits format (type[scope]: subject + Acked-by + Signed-off-by)
+  conventional-commits format (type[scope]: subject + Plan-by + Acked-by + Signed-off-by)
 
 ## Self-review
 
@@ -185,22 +187,15 @@ on. If you find a spec requirement with no task, add the task.
 
 ## Execution handoff
 
-After saving the plan, offer execution choice:
+After saving the plan, hand off to the `executing-plans` skill:
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution
-options:**
+> "Plan complete and saved to `docs/plans/<filename>.md`. Invoking the
+> `executing-plans` skill to execute it."
 
-**1. Task-by-task via @tdd (recommended)** — I dispatch the @tdd agent per
-task, review between tasks, fast iteration.
-
-**2. Inline execution** — I execute tasks in this session, batch execution
-with checkpoints for review.
-
-**Which approach?"**
-
-If task-by-task: invoke the `@tdd` agent for each task in sequence, reviewing
-its output before moving to the next task. After each task is green, invoke
-the `verification-before-completion` skill before moving on.
+Load the `executing-plans` skill and follow its process — it defines two
+execution modes (inline batch-with-checkpoints and @tdd-dispatch with
+two-stage review), per-task review gates, halt/re-plan thresholds, and
+context management across long plans.
 
 ## Remember
 
@@ -213,6 +208,7 @@ the `verification-before-completion` skill before moving on.
 ## Cross-refs
 
 - `brainstorming` skill — the step before this one (produces the spec).
+- `executing-plans` skill — the step after this one (executes the plan).
 - `@tdd` agent — executes each task in Red → Green → Refactor cycles.
 - `verification-before-completion` skill — run after each task is green.
 - `rcs-header` skill — apply RCS header + vim modeline to every new file.

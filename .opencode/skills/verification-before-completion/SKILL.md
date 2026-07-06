@@ -1,6 +1,7 @@
 ---
 name: verification-before-completion
 description: Use before declaring a task done. Verifies the work is actually complete — re-runs the relevant test/loop, confirms green, confirms no debug instrumentation remains, confirms the original repro no longer reproduces. Prevents false "done" claims.
+derived-from: obra/superpowers (MIT, © Jesse Vincent)
 ---
 
 # Verification Before Completion
@@ -29,7 +30,9 @@ php -d pcov.enabled=1 vendor/bin/pest --coverage
 ```
 
 - [ ] All tests pass (green).
-- [ ] Coverage for the changed files is ≥ 80%.
+- [ ] Coverage for the changed files is ≥ 80%. Intersect the coverage
+      report with `git diff --name-only` (staged, fallback to working
+      tree) to identify changed PHP files; check each.
 - [ ] No new tests are failing that were passing before.
 
 ### 2. Original repro no longer reproduces
@@ -110,6 +113,9 @@ the task is complete until every item passes.
   than PASS.
 - This skill is the last gate before `/check` and `@code-review`. Don't
   shortcut it.
+- **Verification vs /check:** This skill is the per-task gate. `/check` is
+  the aggregate pre-push gate. Both run because task-level green can rot by
+  push time.
 
 ## Gotchas
 

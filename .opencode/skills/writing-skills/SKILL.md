@@ -1,6 +1,7 @@
 ---
 name: writing-skills
 description: Use when creating or modifying skills, agents, commands, or docs in .opencode/. Provides the frontmatter schema, mode/permission conventions, cross-ref rules, and quality checks to keep the harness consistent as it grows.
+derived-from: anthropics/skills (MIT, © Anthropic); glebis/claude-skills (MIT, © Gleb)
 ---
 
 # Writing Skills, Agents, and Commands
@@ -26,7 +27,7 @@ description: Use when <trigger>. <What it provides — one sentence>.
 ---
 ```
 
-- `name` must match the directory name (snake_case).
+- `name` must match the directory name (kebab-case).
 - `description` starts with "Use when" so the agent knows when to load it.
 - Skills are on-demand (loaded via the Skill tool) — they cost zero tokens
   per session unless invoked.

@@ -102,11 +102,80 @@ Send security headers on every response (via Aurora or nginx):
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Strict-Transport-Security` on HTTPS
 
+### CSP and Aurora
+
+Aurora emits **only external** `<script src>` tags with SRI hashes
+(`integrity="sha512-..."` + `crossorigin="anonymous"`). No inline scripts
+are emitted. The canonical CSP for every Aurora page is:
+
+```
+Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+```
+
+- `'unsafe-inline'` is forbidden in production.
+- No nonce is required today — Aurora's output is already strict-CSP-compatible.
+- If a future feature requires inline scripts, implement a per-request
+  nonce in Aurora (generate a random nonce, emit it on the `<script>` tag, and
+  reflect it in `script-src 'nonce-<value>'`). See ADR-0001.
+
+Cross-ref: `frontend-architecture` skill — CSP-friendly script rules for
+page authors (inline scripts forbidden, SRI on external scripts).
+
 ## Secrets
 
 - Never hardcode credentials. Load from environment or a non-web-root config.
 - `.env` is gitignored — use `.env.example` only (see `AGENTS.md`).
 - Never log secrets, tokens, or password hashes.
+
+## Known sharp edges
+
+These are documented footguns in first-party code that have caused production
+incidents. The patterns below are unsafe and must not be used. Detection is
+split between Semgrep rules (`.semgrep/kyaulabs.yml`) and Pest tests.
+
+### Aurora constructor positional bools
+
+```php
+// DON'T — positional bools are ambiguous. Which is $status? Which is $html?
+$site = new KYAULabs\Aurora("index.html", "/cdn", true, true);
+// FIXED — named arguments make the dangerous $status param explicit
+$site = new KYAULabs\Aurora(template: "index.html", cdn: "/cdn", status: (bool)($_ENV['APP_DEBUG'] ?? false), html: true);
+```
+
+- `$status=true` leaks stack traces, absolute paths, and SQL fragments to
+  visitors on an unhandled error.
+- Always use named arguments. Never use positional `true`/`false` for `$status`
+  and `$html`.
+- Detected by: `kyaulabs-aurora-status-true-literal` Semgrep rule + Pest
+  `AuroraConstructorStatusTest.php`. See ADR-0002.
+
+### Aurora's `ini_set('display_errors','1')` at constructor start
+
+- Aurora's constructor unconditionally enables error display before the
+  `$status` gate (lines 66-69 of `aurora.inc.php`). If an `AuroraException`
+  is thrown during initialization (missing template, bad CDN directory), the
+  error renders verbosely even when `$status=false`. This is an upstream
+  issue in `kyaulabs/aurora`.
+- Application code must never compound this by calling `ini_set('display_errors', '1')`
+  directly — detected by `kyaulabs-hardcoded-display-errors-on`.
+- Deploy only with the template file and CDN directory confirmed present.
+
+## Suppressing findings
+
+The `@semgrep` agent may flag patterns that are genuinely safe in context
+(false positives). Suppress inline with a mandatory justification:
+
+```php
+// nosemgrep: <rule-id> -- <one-line justification>
+```
+
+- `rule-id` is required — bare `// nosemgrep` is forbidden (it silences all
+  rules at that line).
+- Justification is auditable and committed alongside the code. "I think it's
+  fine" is not a valid justification; explain *why* the pattern is safe.
+- Suppressions are re-reviewed when the named rule is updated — the
+  `/security` command logs extant suppressions in its report.
+- See the `/security` command for the full adjudication protocol.
 
 ## Cross-refs
 

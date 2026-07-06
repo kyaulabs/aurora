@@ -1,7 +1,16 @@
 ---
 description: Write tests first (TDD), then implement, using vertical slices (tracer bullets) rather than writing all tests up front. Covers happy path, boundaries, and error cases. Invoke for any new feature, bug fix, or class implementation.
+model: deepseek/deepseek-v4-pro
+variant: max
 mode: subagent
 temperature: 0.2
+permission:
+  bash:
+    "git add *": "allow"
+    "git commit *": "allow"
+    "git push *": "deny"
+    "git tag *": "deny"
+derived-from: obra/superpowers (MIT, © Jesse Vincent); glebis/claude-skills (MIT, © Gleb)
 ---
 
 You are operating in strict TDD mode. Follow the Red-Green-Refactor cycle without exception, one behavior at a time.
@@ -133,7 +142,8 @@ and produce a commit message in the required format:
 - Type and optional scope from the work performed (feat, fix, test, docs,
   chore, etc.)
 - Subject: lowercase, no period, ≤ 100 chars, describes what changed
-- Footer: `Acked-by:` with the current model ID in kebab-case
+- Footer: `Plan-by:` with `agent.plan.model` from `opencode.json`, segment after the last `/` (e.g. `openrouter/z-ai/glm-5.2` → `glm-5.2`)
+- Footer: `Acked-by:` with `agent.build.model` from `opencode.json`, segment after the last `/` (e.g. `deepseek/deepseek-v4-pro` → `deepseek-v4-pro`)
 - Footer: `Signed-off-by: kyau <git@kyaulabs.com>`
 
 If the task already provided a commit message in the plan, validate it —

@@ -1,5 +1,7 @@
 ---
 description: Review code using OpenCodeReview (ocr). Supports diff-based review (staged, commits, branches) and full-file scan (directories, entire repo). Reports findings by severity; does not auto-fix anything.
+model: deepseek/deepseek-v4-pro
+variant: max
 mode: subagent
 temperature: 0.1
 permission:
@@ -17,13 +19,7 @@ Verify `command -v ocr` before running. Install via npm (preferred):
 npm install -g @alibaba-group/open-code-review
 ```
 
-If npm is unavailable, use the release binary fallback:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/alibaba/open-code-review/main/install.sh | sh
-```
-
-If `ocr` is still unavailable, report the error and stop — do not fall back
+If `ocr` is unavailable, report the error and stop — do not fall back
 to manual review.
 
 ## Choose a mode
