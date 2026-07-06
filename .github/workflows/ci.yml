@@ -100,7 +100,10 @@ jobs:
 
       - name: Commitlint
         if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          echo "${{ github.event.pull_request.title }}" | npx commitlint --verbose
+          printf '%s\n\n%s' "$PR_TITLE" "$PR_BODY" | npx commitlint --verbose
           git fetch origin "${{ github.event.pull_request.base.ref }}"
           npx commitlint --from="origin/${{ github.event.pull_request.base.ref }}" --to="HEAD" --verbose
