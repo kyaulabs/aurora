@@ -17,7 +17,8 @@
 set -euo pipefail
 
 RESULT_FILE=$(mktemp)
-trap 'rm -f "$RESULT_FILE"' EXIT
+TEMP_DIRS=""
+trap 'rm -f "$RESULT_FILE"; [ -n "$TEMP_DIRS" ] && rm -rf $TEMP_DIRS' EXIT
 
 RED=$'\033[1;31m'
 GREEN=$'\033[1;32m'
@@ -33,7 +34,7 @@ REAL_SCRIPT="$REPO_ROOT/.github/scripts/install-hooks.sh"
 
 if [ ! -f "$REAL_SCRIPT" ]; then
 	fail "Cannot find install-hooks.sh at $REAL_SCRIPT"
-	echo "0 1" > "$RESULT_FILE"
+	exit 1
 fi
 
 # ── Test 1: core.hooksPath is set, no symlinks, no dirtying ───────────────────
@@ -41,6 +42,7 @@ fi
 echo ""
 echo "── Test 1: core.hooksPath (no symlinks, no chmod) ──"
 T1=$(mktemp -d)
+TEMP_DIRS="$TEMP_DIRS $T1"
 (
 	cd "$T1"
 	git init --quiet
@@ -100,16 +102,20 @@ done
 
 echo "── Test 3: Error on missing hooks directory ──"
 T3=$(mktemp -d)
+TEMP_DIRS="$TEMP_DIRS $T3"
 (
 	cd "$T3"
 	git init --quiet
 	mkdir -p .github/scripts
 	cp "$REAL_SCRIPT" .github/scripts/install-hooks.sh
-	output=$(bash .github/scripts/install-hooks.sh 2>&1) || true
-	if echo "$output" | grep -q "not found"; then
-		pass "Correctly errors when .github/hooks is missing"
+	set +e
+	bash .github/scripts/install-hooks.sh >/dev/null 2>&1
+	ret=$?
+	set -e
+	if [ "$ret" -ne 0 ]; then
+		pass "Correctly errors when .github/hooks is missing (exit $ret)"
 	else
-		fail "Should error when .github/hooks is missing (got: '$output')"
+		fail "Should error when .github/hooks is missing (exit 0)"
 	fi
 )
 rm -rf "$T3"
@@ -118,6 +124,7 @@ rm -rf "$T3"
 
 echo "── Test 4: Empty hooks directory (nullglob) ──"
 T4=$(mktemp -d)
+TEMP_DIRS="$TEMP_DIRS $T4"
 (
 	cd "$T4"
 	git init --quiet

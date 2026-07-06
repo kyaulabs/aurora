@@ -28,8 +28,8 @@ try {
 }
 
 // Extract frontmatter between first two --- lines
-// Strip \r for CRLF safety
-content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+// Strip \r for CRLF safety, strip BOM (U+FEFF) for Windows editors
+content = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
 const lines = content.split('\n');
 if (lines[0] !== '---') {

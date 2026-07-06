@@ -206,6 +206,8 @@ rm -rf "$T4"
 
 total_pass=$(grep -c "PASS" "$RESULT_FILE" 2>/dev/null || true)
 total_fail=$(grep -c "FAIL" "$RESULT_FILE" 2>/dev/null || true)
+: "${total_pass:=0}"
+: "${total_fail:=0}"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"

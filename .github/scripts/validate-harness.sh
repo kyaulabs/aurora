@@ -10,6 +10,13 @@ if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
 	exit 1
 fi
 
+# ── Prerequisite: Node.js required for YAML frontmatter parsing ─────────────────
+
+if ! command -v node >/dev/null 2>&1; then
+	echo "ERROR: Node.js required for YAML frontmatter parsing" >&2
+	exit 1
+fi
+
 # ── Configuration ────────────────────────────────────────────────────────────
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
@@ -48,7 +55,7 @@ frontmatter_key() {
 check_frontmatter_delimiters() {
 	local file="$1"
 	local open count
-	count=$(grep -c '^---$' "$file" 2>/dev/null || true)
+	count=$(grep -c '^---$' "$file" 2>/dev/null) || count=0
 	if [ "$count" -eq 0 ]; then
 		return 1
 	fi
