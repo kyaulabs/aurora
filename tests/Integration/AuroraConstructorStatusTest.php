@@ -11,7 +11,7 @@ declare(strict_types=1);
  * — never a literal true. This test prevents that class of production
  * error-display bug from silently recurring as apps are added.
  * The kyaulabs-aurora-status-true-literal Semgrep rule provides early
- * warning at diff-audit time (see ADR-0002).
+ * warning at diff-audit time.
  */
 
 test('Aurora constructor must not hardcode $status=true in web-accessible files', function () {

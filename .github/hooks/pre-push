@@ -46,7 +46,7 @@ ${YELLOW}│${RESET}   unsquashed history instead. The git history serves as the
 ${YELLOW}│${RESET}   development and evaluation log — squashing destroys the
 ${YELLOW}│${RESET}   record of what was tried, abandoned, and why.
 ${YELLOW}│${RESET}
-${YELLOW}│${RESET}   ${CYAN}${RESET} See ${BOLD}AGENTS.md${RESET} ${CYAN}${RESET} Git Workflow ${DIM}${RESET} no-squash policy
+${YELLOW}│${RESET}   ${CYAN}${RESET} See ${BOLD}CONTRIBUTING.md${RESET} ${CYAN}${RESET} no-squash policy
 ${YELLOW}╰──────────────────────────────────────────────────────────────────╯${RESET}
 
 EOF
