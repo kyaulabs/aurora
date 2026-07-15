@@ -1,6 +1,6 @@
 {
-	"name": "kyaulabs/template",
-	"description": "Template — Change This Description",
+	"name": "kyaulabs/aurora",
+	"description": "Aurora PHP Framework — Bootstrap layer for applications at KYAULabs",
 	"type": "project",
 	"require": {
 		"php": ">=8.5"
@@ -10,9 +10,6 @@
 		"pestphp/pest": "^4",
 		"pestphp/pest-plugin-arch": "^4",
 		"pestphp/pest-plugin-browser": "^4"
-	},
-	"autoload": {
-		"classmap": [".opencode/evals/bin/includes/"]
 	},
 	"autoload-dev": {
 		"classmap": ["tests/"]

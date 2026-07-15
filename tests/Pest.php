@@ -17,7 +17,7 @@ require_once __DIR__ . '/../aurora.inc.php';
 |--------------------------------------------------------------------------
 |
 | Architecture tests enforce invariants across the entire codebase without
-| requiring per-class test files. See .opencode/docs/conventions.md.
+| requiring per-class test files.
 |
 */
 
