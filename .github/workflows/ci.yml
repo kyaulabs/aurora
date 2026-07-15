@@ -49,11 +49,7 @@ jobs:
           find . -name '*.php' \
             -not -path './vendor/*' \
             -not -path './node_modules/*' \
-            -not -path './aurora/*' \
             -print0 | xargs -0 -n1 php -l
-
-      - name: Harness validation
-        run: bash .github/scripts/validate-harness.sh
 
       - name: Shellcheck
         run: shellcheck .github/scripts/*.sh .github/hooks/* tests/Shell/*.sh

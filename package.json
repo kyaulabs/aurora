@@ -1,14 +1,13 @@
 {
-	"name": "template",
+	"name": "aurora",
 	"private": true,
-	"description": "Template — Change This Description",
+	"description": "Aurora PHP Framework — Bootstrap layer for applications at KYAULabs",
 	"devDependencies": {
 		"@commitlint/config-conventional": "^21",
 		"@eslint/js": "^10",
 		"commitlint": "^21",
 		"eslint": "^10",
 		"git-cliff": "^2",
-		"js-yaml": "^5.2.1",
 		"playwright": "^1",
 		"sass": "^1",
 		"stylelint": "^17",
